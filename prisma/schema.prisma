@@ -32,3 +32,42 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+model Shop {
+  id              String   @id // e.g. "mystore.myshopify.com"
+  pageCredits     Int      @default(20) // Monthly full-page credits
+  iterationTokens Int      @default(100) // Micro-edit tokens
+  isOnboarded     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  pages           Page[]
+}
+
+model Page {
+  id              String   @id @default(cuid())
+  shopId          String
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  title           String
+  handle          String
+  pageType        String   @default("PRODUCT") // PRODUCT, LANDING, HOME, FAQ
+  status          String   @default("DRAFT")   // DRAFT, PUBLISHED
+  stylePreset     String   @default("minimal") // minimal, bold, editorial
+  
+  // Shopify Resource Linkages
+  shopifyPageId   String?  // e.g. "gid://shopify/Page/12345678"
+  targetProductId String?  // Specific product anchor
+  
+  // SEO Meta
+  seoTitle        String?
+  seoDescription  String?
+  
+  // Complete Page Definition (Sections tree, styles, copy)
+  contentJson     Json
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([shopId, handle])
+  @@index([shopId])
+}

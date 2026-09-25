@@ -166,11 +166,14 @@
 .pm-logo-svg {
   width: 175px;
   height: 175px;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  object-fit: contain;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+  filter: drop-shadow(0 16px 32px rgba(0, 82, 255, 0.12));
 }
 
 .pm-logo-svg:hover {
   transform: translateY(-3px) scale(1.02);
+  filter: drop-shadow(0 20px 38px rgba(0, 82, 255, 0.18));
 }
 
 /* Headline & Subtitle */

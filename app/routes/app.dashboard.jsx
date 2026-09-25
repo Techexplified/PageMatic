@@ -429,7 +429,7 @@ export default function Dashboard() {
                   ? "Try searching with a different term."
                   : "Your created storefront pages will appear here once generated."}
               </p>
-              {!searchQuery && (
+              {/* {!searchQuery && (
                 <Link
                   to="/app"
                   style={{
@@ -449,7 +449,7 @@ export default function Dashboard() {
                 >
                   + Build New Page
                 </Link>
-              )}
+              )} */}
             </div>
           )}
         </div>

@@ -16,9 +16,8 @@ database.sqlite
 .env
 .env.*
 
-
-
-
+# Documentation & Roadmaps
+PAGE_BUILDER_ROADMAP.md
 
 /extensions/*/dist
 

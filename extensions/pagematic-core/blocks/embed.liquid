@@ -1,0 +1,21 @@
+{% comment %}
+  Pagematic Storefront Engine
+  Only runs when the page has Pagematic content stored in metafields.
+{% endcomment %}
+
+{% if page.metafields.pagematic.content != blank %}
+  {{ 'pagematic-sections.css' | asset_url | stylesheet_tag }}
+  
+  <div id="pagematic-root" data-page-id="{{ page.id }}">
+    {% render 'pagematic-renderer', content: page.metafields.pagematic.content.value %}
+  </div>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Pagematic-Core",
+  "target": "body",
+  "javascript": "pagematic-runtime.js",
+  "settings": []
+}
+{% endschema %}

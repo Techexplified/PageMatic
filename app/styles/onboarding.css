@@ -1,0 +1,392 @@
+/* ==========================================================================
+   PageMatic Onboarding Styles
+   100% faithful to the reference wireframe design with crisp layered geometry
+   ========================================================================== */
+
+:root {
+  --pm-primary: #0052FF;
+  --pm-primary-hover: #0045D8;
+  --pm-primary-glow: rgba(0, 82, 255, 0.42);
+  --pm-text-title: #0052FF;
+  --pm-text-heading: #0B192C;
+  --pm-text-body: #64748B;
+  --pm-card-bg: #FFFFFF;
+  --pm-card-border: #E2E8F0;
+  --pm-success: #059669;
+  --pm-success-bg: #ECFDF5;
+  --pm-success-border: #A7F3D0;
+}
+
+.pm-onboarding-wrapper {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background-color: #F8FAFC;
+  background-image: linear-gradient(135deg, #F0F6FF 0%, #FAFBFD 50%, #EFF6FF 100%);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  color: var(--pm-text-heading);
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   Crisp Layered Concentric Curved Arcs (Top-Left & Bottom-Right)
+   ========================================================================== */
+
+.pm-corner-decor {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pm-corner-decor--top-left {
+  top: -120px;
+  left: -120px;
+  width: 520px;
+  height: 520px;
+}
+
+.pm-corner-decor--bottom-right {
+  bottom: -150px;
+  right: -150px;
+  width: 620px;
+  height: 620px;
+}
+
+/* Concentric ring layers */
+.pm-ring {
+  position: absolute;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+/* Top-Left Arcs */
+.pm-ring-tl-1 {
+  width: 520px;
+  height: 520px;
+  top: 0;
+  left: 0;
+  background: radial-gradient(circle, rgba(191, 219, 254, 0.45) 0%, rgba(219, 234, 254, 0.25) 100%);
+}
+
+.pm-ring-tl-2 {
+  width: 390px;
+  height: 390px;
+  top: 30px;
+  left: 30px;
+  background: radial-gradient(circle, rgba(147, 197, 253, 0.55) 0%, rgba(191, 219, 254, 0.3) 100%);
+}
+
+.pm-ring-tl-3 {
+  width: 260px;
+  height: 260px;
+  top: 50px;
+  left: 50px;
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.45) 0%, rgba(147, 197, 253, 0.2) 100%);
+}
+
+.pm-ring-tl-4 {
+  width: 140px;
+  height: 140px;
+  top: 60px;
+  left: 60px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, rgba(96, 165, 250, 0.1) 100%);
+}
+
+/* Bottom-Right Arcs */
+.pm-ring-br-1 {
+  width: 620px;
+  height: 620px;
+  bottom: 0;
+  right: 0;
+  background: radial-gradient(circle, rgba(191, 219, 254, 0.45) 0%, rgba(219, 234, 254, 0.2) 100%);
+}
+
+.pm-ring-br-2 {
+  width: 470px;
+  height: 470px;
+  bottom: 40px;
+  right: 40px;
+  background: radial-gradient(circle, rgba(147, 197, 253, 0.5) 0%, rgba(191, 219, 254, 0.25) 100%);
+}
+
+.pm-ring-br-3 {
+  width: 320px;
+  height: 320px;
+  bottom: 60px;
+  right: 60px;
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.4) 0%, rgba(147, 197, 253, 0.15) 100%);
+}
+
+.pm-ring-br-4 {
+  width: 180px;
+  height: 180px;
+  bottom: 70px;
+  right: 70px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(96, 165, 250, 0.1) 100%);
+}
+
+/* ==========================================================================
+   Center Onboarding Layout
+   ========================================================================== */
+
+.pm-onboarding-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 620px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Hero Logo Illustration Area */
+.pm-logo-wrapper {
+  margin-bottom: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.pm-logo-svg {
+  width: 175px;
+  height: 175px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pm-logo-svg:hover {
+  transform: translateY(-3px) scale(1.02);
+}
+
+/* Headline & Subtitle */
+.pm-title {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  color: var(--pm-text-title);
+  margin: 0 0 10px 0;
+}
+
+.pm-subtitle {
+  font-size: 16.5px;
+  font-weight: 400;
+  color: var(--pm-text-body);
+  margin: 0 0 34px 0;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Embed Extension Box (Matching Wireframe Card)
+   ========================================================================== */
+
+.pm-embed-card {
+  width: 100%;
+  max-width: 580px;
+  background: var(--pm-card-bg);
+  border: 1.5px solid var(--pm-card-border);
+  border-radius: 20px;
+  padding: 20px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(0, 82, 255, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+  margin-bottom: 28px;
+  box-sizing: border-box;
+  text-align: left;
+  transition: all 0.25s ease;
+}
+
+.pm-embed-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 8px 30px rgba(0, 82, 255, 0.06);
+}
+
+.pm-embed-card--active {
+  border-color: rgba(5, 150, 105, 0.35);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%);
+}
+
+.pm-embed-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pm-embed-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--pm-text-heading);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.pm-embed-desc {
+  font-size: 13.5px;
+  color: var(--pm-text-body);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Actions inside Card */
+.pm-embed-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pm-btn-theme-editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0052FF;
+  background-color: #EFF6FF;
+  border: 1.5px solid #BFDBFE;
+  border-radius: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.pm-btn-theme-editor:hover {
+  background-color: #DBEAFE;
+  border-color: #93C5FD;
+  transform: translateY(-1px);
+}
+
+.pm-badge-embedded {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pm-success);
+  background-color: var(--pm-success-bg);
+  border: 1px solid var(--pm-success-border);
+  border-radius: 9999px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.08);
+}
+
+.pm-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--pm-success);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.25);
+}
+
+.pm-recheck-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 7px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.pm-recheck-btn:hover {
+  color: #0F172A;
+  background: #F1F5F9;
+}
+
+/* ==========================================================================
+   Primary "Get started →" CTA Button
+   ========================================================================== */
+
+.pm-btn-get-started {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 230px;
+  padding: 14px 42px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: #0052FF;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 10px 25px -4px var(--pm-primary-glow);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.pm-btn-get-started:not(:disabled):hover {
+  background: var(--pm-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -4px rgba(0, 82, 255, 0.55);
+}
+
+.pm-btn-get-started:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.pm-btn-get-started:disabled {
+  background: #CBD5E1;
+  color: #FFFFFF;
+  opacity: 0.85;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.pm-hint-text {
+  margin-top: 15px;
+  font-size: 13.5px;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Micro-animations */
+@keyframes pm-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pm-spinner {
+  animation: pm-spin 1s linear infinite;
+}
+
+@media (max-width: 600px) {
+  .pm-title {
+    font-size: 28px;
+  }
+  
+  .pm-embed-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px;
+  }
+
+  .pm-embed-action {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .pm-btn-get-started {
+    width: 100%;
+  }
+}

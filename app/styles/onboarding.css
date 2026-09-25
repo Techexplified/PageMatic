@@ -4,6 +4,7 @@
    ========================================================================== */
 
 :root {
+  --pm-font-family: "Inter", -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --pm-primary: #0052FF;
   --pm-primary-hover: #0045D8;
   --pm-primary-glow: rgba(0, 82, 255, 0.42);
@@ -15,6 +16,13 @@
   --pm-success: #059669;
   --pm-success-bg: #ECFDF5;
   --pm-success-border: #A7F3D0;
+}
+
+.pm-onboarding-wrapper,
+.pm-onboarding-wrapper input,
+.pm-onboarding-wrapper button,
+.pm-onboarding-wrapper select {
+  font-family: var(--pm-font-family);
 }
 
 .pm-onboarding-wrapper {
@@ -29,7 +37,6 @@
   background-color: #F8FAFC;
   background-image: linear-gradient(135deg, #F0F6FF 0%, #FAFBFD 50%, #EFF6FF 100%);
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   color: var(--pm-text-heading);
   box-sizing: border-box;
 }

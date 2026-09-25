@@ -13,7 +13,7 @@ export async function loader({ request }) {
 
   let [shopRecord, isEmbedded] = await Promise.all([
     db.shopSettings.findUnique({ where: { shop } }),
-    isAppEmbedEnabled(admin, "pagematic-core"),
+    isAppEmbedEnabled(admin, "pagematic"),
   ]);
 
   if (!shopRecord) {
@@ -27,10 +27,8 @@ export async function loader({ request }) {
     //     return redirect("/app");
     // }
 
-  // Shopify Theme App Extension UID & Block Handle for direct deep linking
-  const extensionUid = "c3bcafaf-bc6f-cd1f-aec2-2d9f00c0527c0a64d6d5";
-  const blockHandle = "embed";
-  const themeEditorUrl = `https://${shop}/admin/themes/current/editor?context=apps&activateAppId=${extensionUid}/${blockHandle}`;
+  // deep linking
+  const themeEditorUrl = `https://${shop}/admin/themes/current/editor?context=apps`;
 
   return data({
     shopRecord,
@@ -46,13 +44,13 @@ export async function action({ request }) {
   const intent = formData.get("intent");
 
   if (intent === "check_embed") {
-    const isEmbedded = await isAppEmbedEnabled(admin, "pagematic-core");
+    const isEmbedded = await isAppEmbedEnabled(admin, "pagematic");
     return data({ isEmbedded: Boolean(isEmbedded) });
   }
 
   if (intent === "save" || intent === "complete_onboarding") {
     try {
-      const isEmbedded = await isAppEmbedEnabled(admin, "pagematic-core");
+      const isEmbedded = await isAppEmbedEnabled(admin, "pagematic");
       if (!isEmbedded) {
         return data(
           { error: "Please enable the PageMatic Theme Extension before proceeding." },
@@ -155,7 +153,6 @@ export default function Onboarding() {
           <div className="pm-embed-action">
             {isEmbedded ? (
               <span className="pm-badge-embedded">
-                <span className="pm-badge-dot" />
                 <CheckCircle2 size={15} />
                 Embedded
               </span>

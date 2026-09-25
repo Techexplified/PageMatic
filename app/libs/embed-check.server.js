@@ -15,7 +15,7 @@ const EMBED_QUERY = `#graphql
   }
 `;
 
-export async function isAppEmbedEnabled(admin, appHandle = "pagematic-core") {
+export async function isAppEmbedEnabled(admin, appHandle = "pagematic") {
   try {
     const res = await admin.graphql(EMBED_QUERY);
     const { data, errors } = await res.json();
@@ -48,11 +48,16 @@ export async function isAppEmbedEnabled(admin, appHandle = "pagematic-core") {
     return Object.values(blocks).some((b) => {
       if (!b || b.disabled === true) return false;
       const type = String(b.type || "").toLowerCase();
-      return (
-        (type.includes("pagematic") ||
-          type.includes("c3bcafaf-bc6f-cd1f-aec2-2d9f00c0527c0a64d6d5")) &&
-        (type.includes("embed") || type.includes("pagematic-core"))
-      );
+      
+      // Match extension by app handle, extension name, block handle, or extension UID
+      const matchesApp =
+        type.includes("pagematic") ||
+        type.includes(appHandle.toLowerCase()) ||
+        type.includes("c3bcafaf-bc6f-cd1f-aec2-2d9f00c0527c0a64d6d5");
+
+      const matchesBlock = type.includes("embed") || type.includes("core");
+
+      return matchesApp && matchesBlock;
     });
   } catch (err) {
     console.error("Error evaluating isAppEmbedEnabled:", err);

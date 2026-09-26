@@ -18,6 +18,7 @@ database.sqlite
 
 # Documentation & Roadmaps
 PAGE_BUILDER_ROADMAP.md
+MILESTONE_2_PLAN.md
 
 /extensions/*/dist
 

@@ -843,3 +843,240 @@
   cursor: not-allowed;
   box-shadow: none;
 }
+
+/* ==========================================================================
+   Step 4: AI Generation Progress & Stepper Styles
+   ========================================================================== */
+.pm-generating-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 20px 20px 60px;
+  animation: pmFadeIn 0.3s ease-out;
+}
+
+.pm-generating-illustration-wrap {
+  width: 260px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.pm-generating-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 25px rgba(0, 82, 255, 0.08));
+}
+
+.pm-generating-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0B192C;
+  letter-spacing: -0.02em;
+  margin: 0 0 28px;
+}
+
+/* Stepper Container */
+.pm-stepper-container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  max-width: 580px;
+  margin-bottom: 24px;
+}
+
+.pm-stepper-item-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.pm-stepper-item-wrap:last-child {
+  flex: 0 0 auto;
+}
+
+.pm-stepper-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  width: 110px;
+}
+
+.pm-stepper-node {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.pm-stepper-node--completed {
+  background: var(--pm-primary);
+  border: 2px solid var(--pm-primary);
+  box-shadow: 0 2px 8px rgba(0, 82, 255, 0.35);
+}
+
+.pm-stepper-node--active {
+  background: #FFFFFF;
+  border: 3px solid var(--pm-primary);
+  box-shadow: 0 0 0 4px rgba(0, 82, 255, 0.15);
+}
+
+.pm-stepper-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pm-primary);
+  animation: pmNodePulse 1.2s ease-in-out infinite;
+}
+
+.pm-stepper-node--pending {
+  background: #FFFFFF;
+  border: 2px solid #CBD5E1;
+}
+
+.pm-stepper-label {
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+  transition: color 0.2s ease;
+}
+
+.pm-stepper-label--active {
+  font-weight: 700;
+  color: #0B192C;
+}
+
+.pm-stepper-label--pending {
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+.pm-stepper-line {
+  flex: 1;
+  height: 2.5px;
+  margin: 0 -35px 24px;
+  position: relative;
+  z-index: 1;
+  transition: background-color 0.4s ease;
+}
+
+.pm-stepper-line--completed {
+  background-color: var(--pm-primary);
+}
+
+.pm-stepper-line--pending {
+  background-color: #E2E8F0;
+}
+
+.pm-generating-subtitle {
+  font-size: 13.5px;
+  color: #64748B;
+  margin: 0 0 24px;
+}
+
+/* Credit info card */
+.pm-generating-credit-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 24px;
+  background: #F0F6FE;
+  border: 1px solid #DBEAFE;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 82, 255, 0.04);
+}
+
+.pm-coin-circle-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pm-credit-divider {
+  width: 1px;
+  height: 24px;
+  background: #CBD5E1;
+}
+
+.pm-credit-text-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.pm-credit-bold-text {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0B192C;
+}
+
+.pm-credit-subtext {
+  font-size: 12px;
+  color: #64748B;
+}
+
+/* Error card */
+.pm-generating-error-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: left;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.pm-generating-error-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #991B1B;
+  margin: 0 0 2px;
+}
+
+.pm-generating-error-msg {
+  font-size: 13px;
+  color: #B91C1C;
+  margin: 0;
+}
+
+.pm-generating-error-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@keyframes pmNodePulse {
+  0%, 100% { transform: scale(0.85); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+@keyframes pmFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+

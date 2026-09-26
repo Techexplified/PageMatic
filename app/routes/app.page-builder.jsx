@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { useLoaderData, data } from "react-router";
+import { useLoaderData, useFetcher, data } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { generateAndPersistPage } from "../services/page-generator.server";
 
 // Modular Page Builder Components
 import StepPageType from "../components/page-builder/StepPageType";
 import StepPageStyle from "../components/page-builder/StepPageStyle";
 import StepPromptInput from "../components/page-builder/StepPromptInput";
+import StepGenerating from "../components/page-builder/StepGenerating";
 import WizardFooter from "../components/page-builder/WizardFooter";
 import "../styles/page-builder.css";
 
@@ -109,10 +111,10 @@ export const loader = async ({ request }) => {
       const gqlJson = await shopifyGqlResult.json();
       if (gqlJson?.data?.shop) {
         shopData = gqlJson.data.shop;
-        if (shopData.refundPolicy?.body) policies.push({ type: "Refund Policy", ...shopData.refundPolicy });
-        if (shopData.shippingPolicy?.body) policies.push({ type: "Shipping Policy", ...shopData.shippingPolicy });
-        if (shopData.privacyPolicy?.body) policies.push({ type: "Privacy Policy", ...shopData.privacyPolicy });
-        if (shopData.termsOfService?.body) policies.push({ type: "Terms of Service", ...shopData.termsOfService });
+        if (shopData.refundPolicy?.body) policies.push({ type: "Refund Policy", key: "refundPolicy", ...shopData.refundPolicy });
+        if (shopData.shippingPolicy?.body) policies.push({ type: "Shipping Policy", key: "shippingPolicy", ...shopData.shippingPolicy });
+        if (shopData.privacyPolicy?.body) policies.push({ type: "Privacy Policy", key: "privacyPolicy", ...shopData.privacyPolicy });
+        if (shopData.termsOfService?.body) policies.push({ type: "Terms of Service", key: "termsOfService", ...shopData.termsOfService });
       }
       if (gqlJson?.data?.products?.edges) {
         products = gqlJson.data.products.edges.map((e) => e.node);
@@ -135,12 +137,67 @@ export const loader = async ({ request }) => {
 };
 
 // ============================================================================
+// ACTION (Triggers OpenRouter Page Generation & Prisma DRAFT Creation)
+// ============================================================================
+export const action = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+  const formData = await request.formData();
+
+  const pageType = formData.get("pageType") || "LANDING";
+  const pageStyle = formData.get("pageStyle") || "minimal";
+  const pageTitle = formData.get("pageTitle") || "Untitled Page";
+  const promptText = formData.get("promptText") || "";
+  const niche = formData.get("niche") || "General E-commerce";
+  const selectedProductStr = formData.get("selectedProduct");
+  const selectedPoliciesStr = formData.get("selectedPolicies");
+  const availablePoliciesStr = formData.get("availablePolicies");
+
+  let selectedProduct = null;
+  let selectedPolicies = [];
+  let availablePolicies = [];
+
+  try {
+    if (selectedProductStr) selectedProduct = JSON.parse(selectedProductStr);
+    if (selectedPoliciesStr) selectedPolicies = JSON.parse(selectedPoliciesStr);
+    if (availablePoliciesStr) availablePolicies = JSON.parse(availablePoliciesStr);
+  } catch (e) {
+    console.warn("JSON parse warning in action:", e);
+  }
+
+  try {
+    const result = await generateAndPersistPage({
+      shop: session.shop,
+      pageType,
+      stylePreset: pageStyle.toLowerCase(),
+      pageTitle,
+      niche,
+      promptText,
+      selectedProduct,
+      selectedPolicies,
+      availablePolicies,
+    });
+
+    return data(result);
+  } catch (err) {
+    console.error("[Action Error] Page generation failed:", err);
+    return data(
+      {
+        success: false,
+        error: err.message || "Failed to generate page. Please try again.",
+      },
+      { status: 400 }
+    );
+  }
+};
+
+// ============================================================================
 // PAGE BUILDER ORCHESTRATOR
 // ============================================================================
 export default function PageBuilder() {
   const { shopSettings, shop, products, collections, policies } = useLoaderData();
+  const fetcher = useFetcher();
 
-  // Step state: 1 (Type) -> 2 (Style) -> 3 (Prompt & Ingestion)
+  // Step state: 1 (Type) -> 2 (Style) -> 3 (Prompt & Ingestion) -> 4 (Generating)
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form State
@@ -170,17 +227,18 @@ export default function PageBuilder() {
   const hasSufficientCredits = (shopSettings?.pageCredits || 0) >= 5;
 
   const handleGenerate = () => {
-    const payload = {
-      pageType,
-      pageStyle,
-      pageTitle: pageTitle || `${pageType} Page`,
-      promptText,
-      niche: niche || "General E-commerce",
-      selectedProduct,
-      selectedPolicies,
-    };
-    console.log("Submitting to Generation Engine:", payload);
-    alert(`Ready for Milestone 2: Generating "${payload.pageTitle}" using 5 credits!`);
+    const formData = new FormData();
+    formData.append("pageType", pageType);
+    formData.append("pageStyle", pageStyle);
+    formData.append("pageTitle", pageTitle || `${pageType} Page`);
+    formData.append("promptText", promptText);
+    formData.append("niche", niche || "General E-commerce");
+    formData.append("selectedProduct", JSON.stringify(selectedProduct));
+    formData.append("selectedPolicies", JSON.stringify(selectedPolicies));
+    formData.append("availablePolicies", JSON.stringify(policies));
+
+    setCurrentStep(4);
+    fetcher.submit(formData, { method: "POST" });
   };
 
   return (
@@ -222,15 +280,27 @@ export default function PageBuilder() {
             shopSettings={shopSettings}
           />
         )}
+
+        {currentStep === 4 && (
+          <StepGenerating
+            isSubmitting={fetcher.state === "submitting" || fetcher.state === "loading"}
+            actionData={fetcher.data}
+            pageTitle={pageTitle}
+            onRetry={handleGenerate}
+            onBack={() => setCurrentStep(3)}
+          />
+        )}
       </main>
 
-      {/* Sticky Bottom Navigation Footer */}
-      <WizardFooter
-        currentStep={currentStep}
-        setCurrentStep={setCurrentStep}
-        hasSufficientCredits={hasSufficientCredits}
-        onSubmit={handleGenerate}
-      />
+      {/* Sticky Bottom Navigation Footer (Hidden on Step 4 Loading Screen) */}
+      {currentStep < 4 && (
+        <WizardFooter
+          currentStep={currentStep}
+          setCurrentStep={setCurrentStep}
+          hasSufficientCredits={hasSufficientCredits}
+          onSubmit={handleGenerate}
+        />
+      )}
     </div>
   );
 }

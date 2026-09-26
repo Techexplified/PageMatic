@@ -1,13 +1,9 @@
 import { ArrowLeft, Check } from "lucide-react";
 import TokenBadge from "../TokenBadge";
 
-export default function StepPageStyle({ pageStyle, setPageStyle, shopSettings, onBack }) {
+export default function StepPageStyle({ pageStyle, setPageStyle, shopSettings }) {
   return (
     <div>
-      <button type="button" className="pm-wizard-back-link" onClick={onBack}>
-        <ArrowLeft size={16} /> Back to Dashboard
-      </button>
-
       {/* Title Row with Title on Left and Token Badge on Right */}
       <div className="pm-wizard-title-row">
         <h1 className="pm-wizard-title">Choose a page style</h1>

@@ -7,28 +7,28 @@ export default function StepPageType({ pageType, setPageType, shopSettings }) {
       name: "Landing Page",
       badge: "HERO & CAMPAIGN",
       emoji: "🚀",
-      desc: "Create high-converting landing pages to showcase your products, collections or special marketing campaigns.",
+      desc: "Create high-converting landing pages to showcase your products and campaigns.",
     },
     {
       id: "HOME",
       name: "Home Page",
       badge: "STORE SHOWCASE",
       emoji: "🏪",
-      desc: "Design a stunning homepage to make a memorable first impression and guide visitors to your best products.",
+      desc: "Design a stunning homepage to make a great first impression on your visitors.",
     },
     {
       id: "PRODUCT",
       name: "Product Page",
       badge: "PRODUCT HIGHLIGHT",
       emoji: "👟",
-      desc: "Highlight your products with persuasive benefits, social proof, and high-impact purchase triggers.",
+      desc: "Highlight your products with professional and persuasive product pages.",
     },
     {
       id: "FAQ",
       name: "FAQ Page",
       badge: "QUESTIONS & TRUST",
       emoji: "💬",
-      desc: "Answer common questions, reduce customer support tickets, and boost buyer confidence before checkout.",
+      desc: "Answer common questions, reduce support requests, and boost customer confidence.",
     },
   ];
 
@@ -67,7 +67,8 @@ export default function StepPageType({ pageType, setPageType, shopSettings }) {
               </div>
 
               <div className="pm-credit-tag">
-                <span>🟡</span> 5 credits
+                <div className="pm-token-coin--gold" style={{ width: "16px", height: "16px", fontSize: "9px" }}>G</div>
+                <span>5 credits</span>
               </div>
 
               <h3 className="pm-type-name">{t.name}</h3>

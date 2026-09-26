@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Info } from "lucide-react";
+import { Info, X } from "lucide-react";
 
 export default function TokenBadge({ shopSettings }) {
   const [showTokenInfo, setShowTokenInfo] = useState(false);
@@ -20,45 +20,71 @@ export default function TokenBadge({ shopSettings }) {
   const silverTokens = shopSettings?.iterationTokens ?? 100;
 
   return (
-    <div className="pm-token-pill-container" ref={tokenRef}>
+    <div className="pm-token-group-wrapper" ref={tokenRef}>
       <div className="pm-token-pill">
-        <div className="pm-token-item">
-          <span className="pm-token-icon-gold">🟡</span>
-          <span>You have {goldCredits} monthly credits</span>
+        {/* Gold Tokens */}
+        <div className="pm-token-item" title="Full-Page Generation Credits">
+          <div className="pm-token-coin--gold">G</div>
+          <span className="pm-token-count">{goldCredits}</span>
+          <span className="pm-token-label">monthly credits</span>
         </div>
+
         <div className="pm-token-divider" />
-        <div className="pm-token-item">
-          <span className="pm-token-icon-silver">⚪</span>
-          <span>{silverTokens} tokens</span>
+
+        {/* Silver Tokens */}
+        <div className="pm-token-item" title="Section Re-rolls & Micro-Edits">
+          <div className="pm-token-coin--silver">S</div>
+          <span className="pm-token-count">{silverTokens}</span>
+          <span className="pm-token-label">tokens</span>
         </div>
+
+        {/* Info Icon Button */}
         <button
           type="button"
-          className="pm-token-info-btn"
           onClick={() => setShowTokenInfo(!showTokenInfo)}
-          title="Token balance details"
+          className={`pm-token-info-btn ${showTokenInfo ? "pm-token-info-btn--active" : ""}`}
+          title="What are Gold and Silver tokens?"
         >
-          <Info size={15} />
+          <Info size={16} />
         </button>
       </div>
 
-      {/* Info Popover */}
+      {/* Info Popover Modal matching Dashboard */}
       {showTokenInfo && (
         <div className="pm-token-popover">
-          <div className="pm-popover-title">Understanding Your Tokens</div>
-          <div className="pm-popover-row">
-            <span>🟡</span>
-            <div>
-              <span className="pm-popover-tag">Gold Credits ({goldCredits})</span>
-              <br />
-              Used for generating complete new high-converting pages. Each full page uses <strong>5 credits</strong>.
-            </div>
+          <div className="pm-popover-header">
+            <h4 className="pm-popover-title">Token Balance & Usage</h4>
+            <button
+              type="button"
+              onClick={() => setShowTokenInfo(false)}
+              className="pm-popover-close"
+              title="Close"
+            >
+              <X size={15} />
+            </button>
           </div>
-          <div className="pm-popover-row">
-            <span>⚪</span>
-            <div>
-              <span className="pm-popover-tag">Silver Tokens ({silverTokens})</span>
-              <br />
-              Used for section re-rolls and AI micro-edits in the studio editor. Each re-roll uses <strong>2 tokens</strong>.
+
+          <div className="pm-popover-body">
+            {/* Gold Token Info */}
+            <div className="pm-popover-item">
+              <div className="pm-token-coin--gold" style={{ flexShrink: 0 }}>G</div>
+              <div className="pm-popover-item-content">
+                <h5 className="pm-popover-item-title">Page Credits (Gold)</h5>
+                <p className="pm-popover-item-desc">
+                  Used for generating complete, full-page store layouts with high-reasoning AI (<strong>5 credits</strong> per full page).
+                </p>
+              </div>
+            </div>
+
+            {/* Silver Token Info */}
+            <div className="pm-popover-item">
+              <div className="pm-token-coin--silver" style={{ flexShrink: 0 }}>S</div>
+              <div className="pm-popover-item-content">
+                <h5 className="pm-popover-item-title">Silver Tokens</h5>
+                <p className="pm-popover-item-desc">
+                  Used for sub-second section re-rolls, headline rewrites, and AI micro-edits in the studio editor (<strong>2 tokens</strong> per edit).
+                </p>
+              </div>
             </div>
           </div>
         </div>

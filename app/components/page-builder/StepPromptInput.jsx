@@ -135,10 +135,6 @@ export default function StepPromptInput({
 
   return (
     <div className="pm-prompt-form-container">
-      <button type="button" className="pm-wizard-back-link" onClick={onBack}>
-        <ArrowLeft size={16} /> Back
-      </button>
-
       {/* Title Row with Title on Left and Token Badge on Right */}
       <div className="pm-wizard-title-row">
         <h1 className="pm-wizard-title">Tell AI what to create</h1>
@@ -146,7 +142,7 @@ export default function StepPromptInput({
       </div>
 
       <p className="pm-wizard-subtitle">
-        Describe the page you want to create or paste a product URL. The more details you provide, the better the result.
+        Describe the page you want to create or add custom instructions for the AI. The more details you provide, the better the result.
       </p>
 
       {/* 1. DYNAMIC INGESTION AREA: Product Page Context */}
@@ -248,14 +244,14 @@ export default function StepPromptInput({
       {/* Big Prompt Textarea with Voice Dictation */}
       <div className="pm-form-group">
         <label className="pm-form-label" htmlFor="promptInput">
-          Custom prompt & directions
+          Custom instructions & directions
         </label>
         <div className="pm-textarea-container">
           <textarea
             id="promptInput"
             className="pm-textarea"
             maxLength={2500}
-            placeholder={`Example: Create a high-converting landing page for my summer collection with a modern and clean design.\nOR\nPaste your product URL here...`}
+            placeholder={`Example: Focus on our organic ingredients and eco-friendly packaging. Include a special 20% discount offer banner, emphasize customer reviews, and use a friendly, energetic tone.`}
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
           />

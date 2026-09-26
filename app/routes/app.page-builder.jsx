@@ -200,7 +200,6 @@ export default function PageBuilder() {
             pageStyle={pageStyle}
             setPageStyle={setPageStyle}
             shopSettings={shopSettings}
-            onBack={() => setCurrentStep(1)}
           />
         )}
 
@@ -221,7 +220,6 @@ export default function PageBuilder() {
             policies={policies}
             hasSufficientCredits={hasSufficientCredits}
             shopSettings={shopSettings}
-            onBack={() => setCurrentStep(2)}
           />
         )}
       </main>

@@ -29,63 +29,68 @@ export default function StepPromptInput({
   shopSettings,
   onBack,
 }) {
-  const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef(null);
+  const [voiceSuccess, setVoiceSuccess] = useState(null);
 
-  // Setup Web Speech API on mount
+  // Listen for voice dictation from popup via BroadcastChannel and postMessage
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = "en-US";
+    const handleVoiceText = (text) => {
+      if (!text || typeof text !== "string") return;
+      const cleanText = text.trim();
+      if (!cleanText) return;
 
-        recognition.onresult = (event) => {
-          let currentTranscript = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            currentTranscript += event.results[i][0].transcript;
-          }
-          if (currentTranscript) {
-            setPromptText((prev) => {
-              const cleaned = prev ? `${prev.trim()} ${currentTranscript}` : currentTranscript;
-              return cleaned.slice(0, 2500);
-            });
-          }
-        };
+      setPromptText((prev) => {
+        const combined = prev ? `${prev.trim()} ${cleanText}` : cleanText;
+        return combined.slice(0, 2500);
+      });
 
-        recognition.onerror = (event) => {
-          console.error("Speech recognition error:", event.error);
-          setIsRecording(false);
-        };
+      setVoiceSuccess("✨ Voice instructions added!");
+      setTimeout(() => {
+        setVoiceSuccess(null);
+      }, 3500);
+    };
 
-        recognition.onend = () => {
-          setIsRecording(false);
-        };
-
-        recognitionRef.current = recognition;
-      }
+    // 1. BroadcastChannel (modern, reliable across same-origin windows/iframes)
+    let channel;
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      channel = new BroadcastChannel("pagematic_voice_sync");
+      channel.onmessage = (event) => {
+        if (event.data?.type === "PAGEMATIC_VOICE_TRANSCRIPT") {
+          handleVoiceText(event.data.text);
+        }
+      };
     }
+
+    // 2. window.addEventListener("message") (fallback for postMessage from popup opener)
+    const handleMessage = (event) => {
+      if (event.data?.type === "PAGEMATIC_VOICE_TRANSCRIPT") {
+        handleVoiceText(event.data.text);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener("message", handleMessage);
+    };
   }, [setPromptText]);
 
-  // Toggle voice dictation
-  const toggleVoiceInput = () => {
-    if (!recognitionRef.current) {
-      alert("Voice input is not supported in this browser. Please use Google Chrome or Edge.");
-      return;
-    }
+  // Open the dedicated top-level voice dictation popup window
+  const openVoicePopup = () => {
+    if (typeof window === "undefined") return;
 
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    } else {
-      try {
-        recognitionRef.current.start();
-        setIsRecording(true);
-      } catch (err) {
-        console.error("Could not start speech recognition:", err);
-      }
+    const width = 480;
+    const height = 440;
+    const left = Math.max(0, Math.round(window.screen.width / 2 - width / 2));
+    const top = Math.max(0, Math.round(window.screen.height / 2 - height / 2));
+
+    const popup = window.open(
+      "/voice-dictate",
+      "pagematic_voice_dictate",
+      `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no`
+    );
+
+    if (popup && popup.focus) {
+      popup.focus();
     }
   };
 
@@ -257,15 +262,33 @@ export default function StepPromptInput({
           />
 
           <div className="pm-textarea-footer">
-            <button
-              type="button"
-              className={`pm-btn-voice ${isRecording ? "pm-btn-voice--recording" : ""}`}
-              onClick={toggleVoiceInput}
-              title="Click to dictate your prompt"
-            >
-              {isRecording ? <MicOff size={15} /> : <Mic size={15} />}
-              <span>{isRecording ? "Listening... (Click to stop)" : "Use voice input"}</span>
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <button
+                type="button"
+                className="pm-btn-voice"
+                onClick={openVoicePopup}
+                title="Open voice dictation window"
+              >
+                <Mic size={15} />
+                <span>Use voice input</span>
+              </button>
+
+              {voiceSuccess && (
+                <span
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    color: "#16A34A",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    animation: "fadeIn 0.2s ease-in-out",
+                  }}
+                >
+                  {voiceSuccess}
+                </span>
+              )}
+            </div>
 
             <span className="pm-char-count">{promptText.length}/2500</span>
           </div>

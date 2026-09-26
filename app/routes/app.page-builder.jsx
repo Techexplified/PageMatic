@@ -12,49 +12,27 @@ import StepGenerating from "../components/page-builder/StepGenerating";
 import WizardFooter from "../components/page-builder/WizardFooter";
 import "../styles/page-builder.css";
 
-// ============================================================================
-// LOADER (Parallelized DB + Shopify Admin GraphQL via Promise.all)
-// ============================================================================
-export const loader = async ({ request }) => {
-  const { session, admin } = await authenticate.admin(request);
-  const shop = session.shop;
-
-  // GraphQL query for shop context, policies, recent products, and collections
-  const storeContextQuery = `#graphql
-    query GetStoreContext {
+// Helper to fetch store catalog from Shopify GraphQL
+async function fetchStoreCatalog(admin) {
+  const mainQuery = `#graphql
+    query GetStoreCatalog {
       shop {
         name
         myshopifyDomain
         currencyCode
-        description
-        refundPolicy {
-          title
-          body
-          url
-        }
-        privacyPolicy {
-          title
-          body
-          url
-        }
-        termsOfService {
-          title
-          body
-          url
-        }
-        shippingPolicy {
-          title
-          body
+        primaryDomain {
           url
         }
       }
-      products(first: 10, sortKey: UPDATED_AT, reverse: true) {
+      products(first: 20, sortKey: TITLE) {
         edges {
           node {
             id
             title
             handle
             description
+            vendor
+            productType
             featuredImage {
               url
               altText
@@ -68,30 +46,79 @@ export const loader = async ({ request }) => {
           }
         }
       }
-      collections(first: 8) {
+      collections(first: 10) {
         edges {
           node {
             id
             title
             handle
-            productsCount {
-              count
-            }
           }
         }
       }
     }
   `;
 
-  // Run DB query and Shopify Admin API in parallel
-  const [shopSettingsResult, shopifyGqlResult] = await Promise.all([
+  try {
+    const response = await admin.graphql(mainQuery);
+    const json = await response.json();
+
+    if (json.errors) {
+      console.error("[StoreCatalog] GraphQL Errors in main query:", JSON.stringify(json.errors, null, 2));
+    }
+
+    const shopData = json?.data?.shop || null;
+    const products = (json?.data?.products?.edges || []).map((e) => e.node);
+    const collections = (json?.data?.collections?.edges || []).map((e) => e.node);
+    let policies = [];
+
+    // Optional: Attempt to fetch legal policies if read_legal_policies scope is granted
+    try {
+      const policyQuery = `#graphql
+        query GetPolicies {
+          shop {
+            shopPolicies {
+              id
+              title
+              type
+              body
+              url
+            }
+          }
+        }
+      `;
+      const polRes = await admin.graphql(policyQuery);
+      const polJson = await polRes.json();
+      if (polJson?.data?.shop?.shopPolicies) {
+        policies = polJson.data.shop.shopPolicies;
+      }
+    } catch {
+      // Ignore if scope not granted
+    }
+
+    console.log(`[StoreCatalog] Successfully ingested ${products.length} products, ${collections.length} collections, and ${policies.length} policies for ${shopData?.name || "shop"}`);
+    if (products.length > 0) {
+      console.log(`[StoreCatalog] Sample Products:`, products.slice(0, 3).map((p) => p.title).join(", "));
+    }
+
+    return { shop: shopData, products, collections, policies };
+  } catch (err) {
+    console.error("[StoreCatalog] Error fetching store context:", err);
+    return { shop: null, products: [], collections: [], policies: [] };
+  }
+}
+
+// ============================================================================
+// LOADER (Parallelized DB + Shopify Admin GraphQL via Promise.all)
+// ============================================================================
+export const loader = async ({ request }) => {
+  const { session, admin } = await authenticate.admin(request);
+  const shop = session.shop;
+
+  const [shopSettingsResult, catalogResult] = await Promise.all([
     db.shopSettings.findUnique({
       where: { shop },
     }),
-    admin.graphql(storeContextQuery).catch((err) => {
-      console.error("GraphQL store context fetch error:", err);
-      return null;
-    }),
+    fetchStoreCatalog(admin),
   ]);
 
   let shopSettings = shopSettingsResult;
@@ -101,38 +128,12 @@ export const loader = async ({ request }) => {
     });
   }
 
-  let shopData = null;
-  let products = [];
-  let collections = [];
-  let policies = [];
-
-  if (shopifyGqlResult) {
-    try {
-      const gqlJson = await shopifyGqlResult.json();
-      if (gqlJson?.data?.shop) {
-        shopData = gqlJson.data.shop;
-        if (shopData.refundPolicy?.body) policies.push({ type: "Refund Policy", key: "refundPolicy", ...shopData.refundPolicy });
-        if (shopData.shippingPolicy?.body) policies.push({ type: "Shipping Policy", key: "shippingPolicy", ...shopData.shippingPolicy });
-        if (shopData.privacyPolicy?.body) policies.push({ type: "Privacy Policy", key: "privacyPolicy", ...shopData.privacyPolicy });
-        if (shopData.termsOfService?.body) policies.push({ type: "Terms of Service", key: "termsOfService", ...shopData.termsOfService });
-      }
-      if (gqlJson?.data?.products?.edges) {
-        products = gqlJson.data.products.edges.map((e) => e.node);
-      }
-      if (gqlJson?.data?.collections?.edges) {
-        collections = gqlJson.data.collections.edges.map((e) => e.node);
-      }
-    } catch (e) {
-      console.error("Error parsing GraphQL store response:", e);
-    }
-  }
-
   return data({
     shopSettings,
-    shop: shopData,
-    products,
-    collections,
-    policies,
+    shop: catalogResult.shop,
+    products: catalogResult.products,
+    collections: catalogResult.collections,
+    policies: catalogResult.policies,
   });
 };
 
@@ -140,14 +141,14 @@ export const loader = async ({ request }) => {
 // ACTION (Triggers OpenRouter Page Generation & Prisma DRAFT Creation)
 // ============================================================================
 export const action = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const formData = await request.formData();
 
   const pageType = formData.get("pageType") || "LANDING";
   const pageStyle = formData.get("pageStyle") || "minimal";
   const pageTitle = formData.get("pageTitle") || "Untitled Page";
   const promptText = formData.get("promptText") || "";
-  const niche = formData.get("niche") || "General E-commerce";
+  const niche = formData.get("niche") || "Snowboarding & Outdoor Sports";
   const selectedProductStr = formData.get("selectedProduct");
   const selectedPoliciesStr = formData.get("selectedPolicies");
   const storeContextStr = formData.get("storeContext");
@@ -162,6 +163,12 @@ export const action = async ({ request }) => {
     if (storeContextStr) storeContext = JSON.parse(storeContextStr);
   } catch (e) {
     console.warn("JSON parse warning in action:", e);
+  }
+
+  // If store context was missing or had 0 products, fetch directly on the server
+  if (!storeContext || !storeContext.products || storeContext.products.length === 0) {
+    console.log("[Action] Fetching live store catalog directly from Shopify...");
+    storeContext = await fetchStoreCatalog(admin);
   }
 
   try {

@@ -16,40 +16,68 @@ export default function StandaloneLivePreview() {
   const [page, setPage] = useState(null);
   const [bannerVisible, setBannerVisible] = useState(true);
 
-  // Load from localStorage or BroadcastChannel
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      // 1. Initial load from localStorage
-      const stored =
-        localStorage.getItem("pagematic_live_preview") ||
-        sessionStorage.getItem("pagematic_generated_page");
+    if (typeof window === "undefined") return;
 
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed && parsed.contentJson) {
-            setPage(parsed);
-          }
-        } catch (e) {
-          console.warn("Preview parse error:", e);
-        }
+    // Helper to safely set page if contentJson exists
+    const trySetPage = (obj) => {
+      if (obj && (obj.contentJson || obj.sections)) {
+        const normalized = obj.contentJson ? obj : { ...obj, contentJson: { sections: obj.sections, themeTokens: obj.themeTokens || {} } };
+        setPage(normalized);
+        return true;
       }
+      return false;
+    };
 
-      // 2. Real-time Live Sync via BroadcastChannel
-      let channel;
-      if ("BroadcastChannel" in window) {
+    // 1. Initial load from localStorage / sessionStorage
+    const stored =
+      localStorage.getItem("pagematic_live_preview") ||
+      localStorage.getItem("pagematic_generated_page") ||
+      sessionStorage.getItem("pagematic_live_preview") ||
+      sessionStorage.getItem("pagematic_generated_page");
+
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        trySetPage(parsed);
+      } catch (e) {
+        console.warn("Preview parse error:", e);
+      }
+    }
+
+    // 2. Real-time Live Sync via BroadcastChannel
+    let channel;
+    if ("BroadcastChannel" in window) {
+      try {
         channel = new BroadcastChannel("pagematic_preview_sync");
         channel.onmessage = (event) => {
           if (event.data?.type === "PAGEMATIC_PREVIEW_UPDATE" && event.data.page) {
-            setPage(event.data.page);
+            trySetPage(event.data.page);
           }
         };
-      }
-
-      return () => {
-        if (channel) channel.close();
-      };
+      } catch (e) {}
     }
+
+    // 3. window.addEventListener("message") for direct postMessage
+    const handleMessage = (event) => {
+      if (
+        (event.data?.type === "PAGEMATIC_PREVIEW_DATA" || event.data?.type === "PAGEMATIC_PREVIEW_UPDATE") &&
+        event.data.page
+      ) {
+        trySetPage(event.data.page);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+
+    // 4. Actively ping window.opener if available to request live data
+    if (window.opener && typeof window.opener.postMessage === "function") {
+      window.opener.postMessage({ type: "REQUEST_PAGEMATIC_PREVIEW" }, "*");
+    }
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener("message", handleMessage);
+    };
   }, []);
 
   if (!page) {

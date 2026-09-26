@@ -217,6 +217,21 @@ export default function StudioEditor() {
     fetcher.submit(formData, { method: "POST" });
   };
 
+  // Listen for preview window asking for live data
+  useEffect(() => {
+    const handlePreviewMessage = (event) => {
+      if (event.data?.type === "REQUEST_PAGEMATIC_PREVIEW") {
+        const payload = { ...page, title: pageTitle, contentJson };
+        if (event.source && typeof event.source.postMessage === "function") {
+          event.source.postMessage({ type: "PAGEMATIC_PREVIEW_DATA", page: payload }, "*");
+        }
+      }
+    };
+
+    window.addEventListener("message", handlePreviewMessage);
+    return () => window.removeEventListener("message", handlePreviewMessage);
+  }, [page, pageTitle, contentJson]);
+
   // Helper to commit state & sync to storage + BroadcastChannel
   const updateSectionsInState = (newSections) => {
     const updatedContent = {
@@ -235,9 +250,11 @@ export default function StudioEditor() {
 
       // Broadcast live changes to any open preview tab
       if ("BroadcastChannel" in window) {
-        const bc = new BroadcastChannel("pagematic_preview_sync");
-        bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: updatedPage });
-        bc.close();
+        try {
+          const bc = new BroadcastChannel("pagematic_preview_sync");
+          bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: updatedPage });
+          setTimeout(() => bc.close(), 100);
+        } catch (e) {}
       }
     }
   };
@@ -256,7 +273,26 @@ export default function StudioEditor() {
     if (typeof window !== "undefined") {
       const payload = { ...page, title: pageTitle, contentJson };
       localStorage.setItem("pagematic_live_preview", JSON.stringify(payload));
-      window.open("/preview", "_blank");
+      sessionStorage.setItem("pagematic_live_preview", JSON.stringify(payload));
+
+      const previewWin = window.open("/preview", "_blank");
+
+      // Broadcast and direct postMessage
+      if ("BroadcastChannel" in window) {
+        try {
+          const bc = new BroadcastChannel("pagematic_preview_sync");
+          bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: payload });
+          setTimeout(() => bc.close(), 200);
+        } catch (e) {}
+      }
+
+      if (previewWin) {
+        setTimeout(() => {
+          try {
+            previewWin.postMessage({ type: "PAGEMATIC_PREVIEW_DATA", page: payload }, "*");
+          } catch (e) {}
+        }, 300);
+      }
     }
   };
 

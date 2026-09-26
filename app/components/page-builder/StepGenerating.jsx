@@ -12,6 +12,7 @@ export default function StepGenerating({
   const navigate = useNavigate();
   const [activeStage, setActiveStage] = useState(1); // 1: Reading, 2: Generating, 3: Optimizing, 4: Finalizing
   const [isDone, setIsDone] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const stages = [
     { id: 1, label: "Reading your input" },
@@ -22,7 +23,10 @@ export default function StepGenerating({
 
   // Stage progression timer
   useEffect(() => {
-    if (actionData?.error) return;
+    if (actionData?.error && !isRetrying) return;
+
+    setActiveStage(1);
+    setIsDone(false);
 
     const timer1 = setTimeout(() => setActiveStage(2), 1800);
     const timer2 = setTimeout(() => setActiveStage(3), 7500);
@@ -31,13 +35,30 @@ export default function StepGenerating({
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [actionData?.error]);
+  }, [actionData?.error, isRetrying]);
+
+  // When actionData changes, reset retry flag
+  useEffect(() => {
+    if (actionData) {
+      setIsRetrying(false);
+    }
+  }, [actionData]);
+
+  // Handle Retry click: reset stages and trigger submission
+  const handleRetryClick = () => {
+    setIsRetrying(true);
+    setActiveStage(1);
+    setIsDone(false);
+    onRetry();
+  };
 
   // When action completes successfully
   useEffect(() => {
     if (actionData?.success && actionData?.page) {
       if (typeof window !== "undefined") {
         sessionStorage.setItem("pagematic_generated_page", JSON.stringify(actionData.page));
+        localStorage.setItem("pagematic_generated_page", JSON.stringify(actionData.page));
+        localStorage.setItem("pagematic_live_preview", JSON.stringify(actionData.page));
       }
       setActiveStage(4);
       const doneTimer = setTimeout(() => {
@@ -51,6 +72,8 @@ export default function StepGenerating({
       return () => clearTimeout(doneTimer);
     }
   }, [actionData, navigate]);
+
+  const hasError = !isRetrying && !isSubmitting && actionData?.error;
 
   return (
     <div className="pm-generating-container">
@@ -67,7 +90,7 @@ export default function StepGenerating({
       <h1 className="pm-generating-title">Building your new page...</h1>
 
       {/* Error state if generation failed */}
-      {actionData?.error ? (
+      {hasError ? (
         <div className="pm-generating-error-card">
           <AlertCircle size={20} color="#DC2626" />
           <div style={{ flex: 1 }}>
@@ -78,7 +101,7 @@ export default function StepGenerating({
             <button type="button" className="pm-btn-secondary" onClick={onBack}>
               Go Back
             </button>
-            <button type="button" className="pm-btn-primary" onClick={onRetry}>
+            <button type="button" className="pm-btn-primary" onClick={handleRetryClick}>
               Try Again
             </button>
           </div>

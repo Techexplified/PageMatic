@@ -1,7 +1,7 @@
 import { STYLE_THEME_TOKENS } from "../libs/ai-config";
 
 /**
- * Builds high-converting system and user prompts for OpenRouter page generation.
+ * Builds dynamic, store-grounded system and user prompts using real store catalog & profile data.
  */
 export function buildPageGenerationPrompt({
   pageType = "LANDING",
@@ -11,93 +11,103 @@ export function buildPageGenerationPrompt({
   promptText = "",
   selectedProduct = null,
   selectedPolicies = [],
-  availablePolicies = [],
+  storeContext = null,
 }) {
   const themeTokens = STYLE_THEME_TOKENS[stylePreset] || STYLE_THEME_TOKENS.minimal;
 
-  // System Prompt
-  const systemPrompt = `You are PageMatic AI, a world-class e-commerce landing page architect and conversion copywriter.
-Your job is to generate a complete, high-converting, production-ready Shopify page structure in strict JSON format.
+  const shopInfo = storeContext?.shop || {};
+  const storeProducts = storeContext?.products || [];
+  const storeCollections = storeContext?.collections || [];
+  const storePolicies = storeContext?.policies || [];
 
-### CORE REQUIREMENTS:
-1. **Never use placeholder text like "Lorem ipsum" or "Add text here".** Write real, highly engaging, persuasive sales copy specifically tailored to the niche and merchant instructions.
-2. **Style Preset Alignment:**
-   - "minimal": Modern, airy, clean, generous whitespace, tech/lifestyle vibe, sans-serif.
-   - "bold": High-contrast, dark mode accents, vibrant punchy badges, bold statement typography.
-   - "editorial": Sophisticated, narrative-driven storytelling, elegant serif accents, luxury feel.
-3. **Structured Section Output:** Return a JSON object with:
-   - "title": string (SEO-optimized page title)
-   - "seoDescription": string (150-160 char meta description)
-   - "themeTokens": CSS variable map matching the style preset
-   - "sections": Array of section objects. Each section MUST have:
-     - "type": (e.g. "HEADER", "HERO", "PRODUCT_DETAILS", "BENEFITS", "TESTIMONIALS", "FAQ", "FOOTER")
-     - "data": Section-specific properties
+  // Tightly constrained, store-grounded System Prompt
+  const systemPrompt = `You are PageMatic AI, an expert Shopify page architect.
+Your job is to generate a custom, high-converting Shopify page structure in strict JSON format using ONLY the merchant's real store context and instructions.
 
-### SECTION BLUEPRINT BY PAGE TYPE:
-- **PRODUCT Page**:
-  1. HEADER: { brandName, navLinks, ctaText }
-  2. HERO: { headline, subheadline, badge, ctaPrimary, ctaSecondary, imageUrl }
-  3. PRODUCT_DETAILS: { title, price, description, features: string[], guaranteeBadge }
-  4. BENEFITS: { heading, subtitle, items: [{ title, description, iconName }] }
-  5. TESTIMONIALS: { heading, subtitle, items: [{ name, rating: 5, comment, verified: true }] }
-  6. FAQ: { heading, subtitle, items: [{ question, answer }] }
-  7. FOOTER: { copyright, policyLinks: string[], socialLinks: string[] }
+### DYNAMIC SECTION COMPOSITION (STRICT GROUNDING):
+1. **NO FAKE OR FABRICATED CONTENT:** Do NOT invent fictional customer reviews, fake quotes, non-existent statistics (e.g. "10,000+ happy customers"), or claims that are not in the store data or instructions.
+2. **FREE SECTION SELECTION:** You have full creative freedom to choose the best combination of sections to highlight the store's actual products, policies, and value propositions. You do NOT have to force sections if data doesn't exist (for example, if there are no customer reviews, skip TESTIMONIALS and instead use BENEFITS, PRODUCT_DETAILS, or FAQ).
+3. **AVAILABLE SECTION TYPES & SCHEMAS:**
+   - **HEADER**: { "brandName": string, "navLinks": string[], "ctaText": string }
+   - **HERO**: { "headline": string, "subheadline": string, "badge"?: string, "ctaPrimary": string, "ctaSecondary"?: string, "imageUrl"?: string }
+   - **PRODUCT_DETAILS**: { "title": string, "price": string, "description": string, "features": string[] }
+   - **BENEFITS**: { "heading": string, "subtitle"?: string, "items": [{ "title": string, "description": string }] }
+   - **TESTIMONIALS**: ONLY use if merchant provides reviews in custom instructions: { "heading": string, "items": [{ "name": string, "comment": string, "rating": 5 }] }
+   - **FAQ**: { "heading": string, "items": [{ "question": string, "answer": string }] }
+   - **FOOTER**: { "copyright": string, "policyLinks": string[] }
 
-- **LANDING Page**:
-  1. HEADER, 2. HERO, 3. BENEFITS / FEATURES, 4. TESTIMONIALS / SOCIAL_PROOF, 5. FAQ, 6. FOOTER.
+4. **STYLE PRESETS:**
+   - "minimal": Modern, clean, generous whitespace, sans-serif typography.
+   - "bold": High-contrast, dark mode accents, punchy badges, bold statement typography.
+   - "editorial": Sophisticated, narrative storytelling, elegant serif typography.
 
-- **HOME Page**:
-  1. HEADER, 2. HERO, 3. BENEFITS, 4. FEATURED_PRODUCT / HIGHLIGHT, 5. TESTIMONIALS, 6. NEWSLETTER_CTA, 7. FOOTER.
-
-- **FAQ Page**:
-  1. HEADER, 2. HERO (Clear FAQ search/title header), 3. FAQ (Comprehensive categorized questions based on policies or common customer inquiries), 4. CONTACT_SUPPORT (Help box), 5. FOOTER.
+### OUTPUT JSON SCHEMA:
+Return a single JSON object with:
+- "title": string (Page title)
+- "seoDescription": string (Meta description based on store)
+- "themeTokens": CSS variables dictionary
+- "sections": Array of chosen section objects ({ "type": string, "data": object })
 
 ### CRITICAL:
-Return ONLY the raw JSON object. Do not include markdown code block tags or any conversational text.`;
+Return ONLY the raw JSON object. Do not include markdown code block tags or conversational text.`;
 
-  // Context Ingestion for User Prompt
-  let contextBlock = `PAGE DETAILS:
-- Page Type: ${pageType}
-- Style Preset: ${stylePreset}
-- Working Title: ${pageTitle}
-- Niche / Industry: ${niche || "General E-commerce"}`;
+  // Build Comprehensive Real Store Context
+  let storeDump = `=== REAL STORE DATA & INGESTED CONTEXT ===
+Store Name: ${shopInfo.name || "Shopify Store"}
+Domain: ${shopInfo.myshopifyDomain || ""}
+Currency: ${shopInfo.currencyCode || "USD"}
+Store Description: ${shopInfo.description || "N/A"}
+Niche: ${niche || "General E-commerce"}`;
 
   if (promptText && promptText.trim()) {
-    contextBlock += `\n\nMERCHANT INSTRUCTIONS & CUSTOM DIRECTIONS:
+    storeDump += `\n\nMERCHANT CUSTOM INSTRUCTIONS (PRIORITIZE THESE):
 "${promptText.trim()}"`;
   }
 
   if (selectedProduct && selectedProduct.title) {
-    contextBlock += `\n\nFEATURED PRODUCT CONTEXT:
+    storeDump += `\n\nTARGET SELECTED PRODUCT:
 - Title: ${selectedProduct.title}
-- Price: ${selectedProduct.price || "Check store"}
-- Description: ${selectedProduct.description ? selectedProduct.description.slice(0, 800) : "N/A"}
-- Product Image: ${selectedProduct.imageUrl || "N/A"}`;
+- Price: ${selectedProduct.price || "See store"}
+- Description: ${selectedProduct.description || "N/A"}
+- Image URL: ${selectedProduct.imageUrl || "N/A"}`;
   }
 
-  if (selectedPolicies && selectedPolicies.length > 0) {
-    const policyDetails = selectedPolicies
-      .map((policyKey) => {
-        const found = availablePolicies?.find((p) => p.key === policyKey);
-        if (found && found.body) {
-          return `- ${found.title}: ${found.body.slice(0, 500)}`;
-        }
-        return `- ${policyKey}`;
-      })
+  // Include store catalog products with real Shopify images
+  if (storeProducts && storeProducts.length > 0) {
+    const prodsList = storeProducts
+      .slice(0, 8)
+      .map(
+        (p) =>
+          `• Product: "${p.title}" | Price: ${p.priceRangeV2?.minVariantPrice?.amount || ""} ${p.priceRangeV2?.minVariantPrice?.currencyCode || ""} | Image URL: "${p.featuredImage?.url || ""}" | Description: ${p.description || "Top rated item"}`
+      )
       .join("\n");
-
-    contextBlock += `\n\nSTORE POLICIES TO INCORPORATE INTO COPY/FAQ:
-${policyDetails}`;
+    storeDump += `\n\nSTORE CATALOG PRODUCTS (USE THESE EXACT PRODUCTS AND IMAGES):\n${prodsList}`;
   }
 
-  const userPrompt = `Generate the complete page JSON structure for the following page request:
+  // Include store collections
+  if (storeCollections && storeCollections.length > 0) {
+    const colList = storeCollections
+      .map((c) => `• ${c.title} (${c.productsCount?.count || 0} products)`)
+      .join("\n");
+    storeDump += `\n\nSTORE COLLECTIONS:\n${colList}`;
+  }
 
-${contextBlock}
+  // Include store legal policies
+  if (storePolicies && storePolicies.length > 0) {
+    const polList = storePolicies
+      .map((p) => `• ${p.title || p.type}: ${p.body ? p.body.slice(0, 300) : "Available"}`)
+      .join("\n");
+    storeDump += `\n\nSTORE LEGAL POLICIES:\n${polList}`;
+  }
 
-DEFAULT THEME TOKENS TO USE:
+  const userPrompt = `Synthesize a high-converting ${pageType} page for "${pageTitle}" using ONLY the real store data and merchant instructions below.
+
+${storeDump}
+
+DEFAULT THEME TOKENS:
 ${JSON.stringify(themeTokens, null, 2)}
 
-Ensure all headlines, descriptions, testimonials, and FAQs are specific to the niche and product details. Return valid JSON only.`;
+Select the most compelling sections to present this store's real products, collections, and policies. Return valid raw JSON only.`;
 
   return {
     systemPrompt,

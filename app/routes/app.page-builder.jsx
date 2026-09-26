@@ -150,16 +150,16 @@ export const action = async ({ request }) => {
   const niche = formData.get("niche") || "General E-commerce";
   const selectedProductStr = formData.get("selectedProduct");
   const selectedPoliciesStr = formData.get("selectedPolicies");
-  const availablePoliciesStr = formData.get("availablePolicies");
+  const storeContextStr = formData.get("storeContext");
 
   let selectedProduct = null;
   let selectedPolicies = [];
-  let availablePolicies = [];
+  let storeContext = null;
 
   try {
     if (selectedProductStr) selectedProduct = JSON.parse(selectedProductStr);
     if (selectedPoliciesStr) selectedPolicies = JSON.parse(selectedPoliciesStr);
-    if (availablePoliciesStr) availablePolicies = JSON.parse(availablePoliciesStr);
+    if (storeContextStr) storeContext = JSON.parse(storeContextStr);
   } catch (e) {
     console.warn("JSON parse warning in action:", e);
   }
@@ -174,7 +174,7 @@ export const action = async ({ request }) => {
       promptText,
       selectedProduct,
       selectedPolicies,
-      availablePolicies,
+      storeContext,
     });
 
     return data(result);
@@ -235,7 +235,7 @@ export default function PageBuilder() {
     formData.append("niche", niche || "General E-commerce");
     formData.append("selectedProduct", JSON.stringify(selectedProduct));
     formData.append("selectedPolicies", JSON.stringify(selectedPolicies));
-    formData.append("availablePolicies", JSON.stringify(policies));
+    formData.append("storeContext", JSON.stringify({ shop, products, collections, policies }));
 
     setCurrentStep(4);
     fetcher.submit(formData, { method: "POST" });

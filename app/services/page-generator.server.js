@@ -16,6 +16,7 @@ export async function generateAndPersistPage({
   selectedProduct = null,
   selectedPolicies = [],
   availablePolicies = [],
+  storeContext = null,
 }) {
   if (!shop) {
     throw new Error("Shop domain is required.");
@@ -38,13 +39,7 @@ export async function generateAndPersistPage({
     });
   }
 
-  if (settings.pageCredits < PAGE_COST_CREDITS) {
-    throw new Error(
-      `Insufficient credits. You currently have ${settings.pageCredits} credits, but full page generation requires ${PAGE_COST_CREDITS} credits.`
-    );
-  }
-
-  // 2. Build system and user prompts
+  // 2. Build system and user prompts with full store context
   const { systemPrompt, userPrompt } = buildPageGenerationPrompt({
     pageType,
     stylePreset,
@@ -53,7 +48,7 @@ export async function generateAndPersistPage({
     promptText,
     selectedProduct,
     selectedPolicies,
-    availablePolicies,
+    storeContext,
   });
 
   // 3. Call OpenRouter API with fallback rotation
@@ -87,7 +82,7 @@ export async function generateAndPersistPage({
     seoTitle: sanitizedContent.title,
     seoDescription: sanitizedContent.seoDescription || null,
     contentJson: sanitizedContent,
-    status: "DRAFT (IN-MEMORY)",
+    status: "DRAFT",
     createdAt: new Date().toISOString(),
   };
 

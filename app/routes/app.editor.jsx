@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
-import { useLoaderData, Link } from "react-router";
+import { useLoaderData, useFetcher, data } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
-import {
-  ArrowLeft,
-  Copy,
-  Check,
-  Code,
-  Layers,
-  Sparkles,
-  Palette,
-} from "lucide-react";
+import { generateWithGroq } from "../services/groq.server";
 
+// Studio Editor Sub-components
+import EditorHeader from "../components/editor/EditorHeader";
+import EditorLayersPanel from "../components/editor/EditorLayersPanel";
+import EditorPreviewCanvas from "../components/editor/EditorPreviewCanvas";
+import EditorInspectorPanel from "../components/editor/EditorInspectorPanel";
+import "../styles/editor.css";
+
+// ============================================================================
+// LOADER (Fetches shop settings and initial page state)
+// ============================================================================
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const url = new URL(request.url);
@@ -26,26 +28,82 @@ export const loader = async ({ request }) => {
     page = await db.page.findUnique({
       where: { id: pageId },
     });
-  } else if (shopSettings) {
-    page = await db.page.findFirst({
-      where: { shopId: shopSettings.id },
-      orderBy: { createdAt: "desc" },
-    });
   }
 
-  return {
+  return data({
     page,
     shopSettings,
-  };
+  });
 };
 
-export default function PageBuilderEditorPreview() {
-  const { page: loaderPage, shopSettings } = useLoaderData();
-  const [page, setPage] = useState(loaderPage);
-  const [copied, setCopied] = useState(false);
-  const [viewMode, setViewMode] = useState("sections"); // "sections" | "raw"
+// ============================================================================
+// ACTION (Handles AI Micro-Edits & Section Re-rolls via Groq)
+// ============================================================================
+export const action = async ({ request }) => {
+  await authenticate.admin(request);
+  const formData = await request.formData();
+  const intent = formData.get("intent");
 
-  // Check sessionStorage for in-memory generated page
+  if (intent === "REROLL_SECTION") {
+    const sectionType = formData.get("sectionType");
+    const currentDataStr = formData.get("currentData");
+    const prompt = formData.get("prompt") || "Improve and polish this section copy for higher conversion.";
+
+    let currentData = {};
+    try {
+      if (currentDataStr) currentData = JSON.parse(currentDataStr);
+    } catch (e) {}
+
+    const systemPrompt = `You are PageMatic AI. You specialize in micro-editing single landing page sections.
+Return ONLY a valid JSON object matching the data schema for section type: ${sectionType}.
+Do not output markdown backticks or conversational text.`;
+
+    const userPrompt = `Modify and regenerate this ${sectionType} section based on this instruction:
+"${prompt}"
+
+CURRENT SECTION DATA:
+${JSON.stringify(currentData, null, 2)}
+
+Return the updated data JSON object:`;
+
+    try {
+      // Try Groq for sub-second re-roll; if no key, return modified local data
+      let updatedData;
+      if (process.env.GROQ_API_KEY) {
+        updatedData = await generateWithGroq({ systemPrompt, userPrompt });
+      } else {
+        // Fallback demo tweak
+        updatedData = {
+          ...currentData,
+          headline: currentData.headline ? `✨ ${currentData.headline}` : undefined,
+          heading: currentData.heading ? `✨ ${currentData.heading}` : undefined,
+        };
+      }
+
+      return data({ success: true, updatedData });
+    } catch (err) {
+      console.error("Groq re-roll error:", err);
+      return data({ success: false, error: err.message }, { status: 400 });
+    }
+  }
+
+  return data({ success: true });
+};
+
+// ============================================================================
+// STUDIO EDITOR MASTER COMPONENT
+// ============================================================================
+export default function StudioEditor() {
+  const { page: loaderPage, shopSettings } = useLoaderData();
+  const fetcher = useFetcher();
+
+  // In-Memory / Loaded Page State
+  const [page, setPage] = useState(loaderPage || null);
+  const [pageTitle, setPageTitle] = useState("");
+  const [deviceMode, setDeviceMode] = useState("desktop"); // desktop | tablet | mobile
+  const [selectedSectionId, setSelectedSectionId] = useState(null);
+
+  // Initialize from sessionStorage or loader on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = sessionStorage.getItem("pagematic_generated_page");
@@ -54,407 +112,215 @@ export default function PageBuilderEditorPreview() {
           const parsed = JSON.parse(stored);
           if (parsed && parsed.contentJson) {
             setPage(parsed);
+            setPageTitle(parsed.title || "Untitled Page");
+            if (parsed.contentJson.sections?.length > 0) {
+              setSelectedSectionId(parsed.contentJson.sections[0].id);
+            }
+            return;
           }
         } catch (e) {
-          console.warn("Could not parse sessionStorage page:", e);
+          console.warn("Session storage parse warning:", e);
         }
       }
     }
-  }, []);
+
+    if (loaderPage) {
+      setPage(loaderPage);
+      setPageTitle(loaderPage.title || "Untitled Page");
+      if (loaderPage.contentJson?.sections?.length > 0) {
+        setSelectedSectionId(loaderPage.contentJson.sections[0].id);
+      }
+    }
+  }, [loaderPage]);
+
+  // Handle Groq Re-roll action response
+  useEffect(() => {
+    if (fetcher.data?.success && fetcher.data?.updatedData && selectedSectionId) {
+      handleUpdateSectionData(selectedSectionId, fetcher.data.updatedData);
+    }
+  }, [fetcher.data]);
+
+  const contentJson = page?.contentJson || { sections: [], themeTokens: {} };
+  const sections = contentJson.sections || [];
+  const themeTokens = contentJson.themeTokens || {};
+
+  const selectedSection = sections.find((s) => s.id === selectedSectionId) || sections[0];
+
+  // 1. Toggle Section Visibility (Hide/Show)
+  const handleToggleVisibility = (sectionId) => {
+    const updatedSections = sections.map((sec) => {
+      if (sec.id === sectionId) {
+        return { ...sec, visible: sec.visible === false ? true : false };
+      }
+      return sec;
+    });
+    updateSectionsInState(updatedSections);
+  };
+
+  // 2. Reorder Sections
+  const handleMoveSection = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= sections.length) return;
+    const updated = [...sections];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
+    updateSectionsInState(updated);
+  };
+
+  // 3. Delete Section
+  const handleDeleteSection = (sectionId) => {
+    const updated = sections.filter((s) => s.id !== sectionId);
+    updateSectionsInState(updated);
+    if (selectedSectionId === sectionId && updated.length > 0) {
+      setSelectedSectionId(updated[0].id);
+    }
+  };
+
+  // 4. Add Section
+  const handleAddSection = () => {
+    const newSec = {
+      id: `sec_custom_${Date.now()}`,
+      type: "BENEFITS",
+      visible: true,
+      data: {
+        heading: "New Custom Section",
+        subtitle: "Add your key value propositions here.",
+        items: [
+          { title: "Point 1", description: "Highlight your key feature." },
+          { title: "Point 2", description: "Another conversion driver." },
+        ],
+      },
+    };
+    const updated = [...sections, newSec];
+    updateSectionsInState(updated);
+    setSelectedSectionId(newSec.id);
+  };
+
+  // 5. Update Section Data (from Inspector inputs)
+  const handleUpdateSectionData = (sectionId, newData) => {
+    const updated = sections.map((sec) => {
+      if (sec.id === sectionId) {
+        return { ...sec, data: newData };
+      }
+      return sec;
+    });
+    updateSectionsInState(updated);
+  };
+
+  // 6. Trigger AI Section Re-Roll
+  const handleAiReRoll = (section, prompt) => {
+    const formData = new FormData();
+    formData.append("intent", "REROLL_SECTION");
+    formData.append("sectionType", section.type);
+    formData.append("currentData", JSON.stringify(section.data || {}));
+    formData.append("prompt", prompt);
+
+    fetcher.submit(formData, { method: "POST" });
+  };
+
+  // Helper to commit state & sync to storage + BroadcastChannel
+  const updateSectionsInState = (newSections) => {
+    const updatedContent = {
+      ...contentJson,
+      sections: newSections,
+    };
+    const updatedPage = {
+      ...page,
+      title: pageTitle,
+      contentJson: updatedContent,
+    };
+    setPage(updatedPage);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("pagematic_generated_page", JSON.stringify(updatedPage));
+      localStorage.setItem("pagematic_live_preview", JSON.stringify(updatedPage));
+
+      // Broadcast live changes to any open preview tab
+      if ("BroadcastChannel" in window) {
+        const bc = new BroadcastChannel("pagematic_preview_sync");
+        bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: updatedPage });
+        bc.close();
+      }
+    }
+  };
+
+  // 7. Save Draft
+  const handleSave = () => {
+    if (typeof window !== "undefined") {
+      const payload = { ...page, title: pageTitle, contentJson };
+      sessionStorage.setItem("pagematic_generated_page", JSON.stringify(payload));
+      localStorage.setItem("pagematic_live_preview", JSON.stringify(payload));
+    }
+  };
+
+  // 8. Standalone Sandboxed Live Preview in New Tab (Zero Shopify store pollution)
+  const handlePreview = () => {
+    if (typeof window !== "undefined") {
+      const payload = { ...page, title: pageTitle, contentJson };
+      localStorage.setItem("pagematic_live_preview", JSON.stringify(payload));
+      window.open("/preview", "_blank");
+    }
+  };
+
+  // 9. Publish (Milestone 4 placeholder)
+  const handlePublish = () => {
+    alert(`Ready for Milestone 4! Publishing "${pageTitle}" directly to your Shopify Online Store.`);
+  };
 
   if (!page) {
     return (
-      <div style={styles.container}>
-        <div style={styles.emptyCard}>
-          <h2>No Generated Page Found</h2>
-          <p>Please use the Page Builder to generate a new page first.</p>
-          <Link to="/app/page-builder" style={styles.btnPrimary}>
-            <ArrowLeft size={16} /> Go to Page Builder
-          </Link>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "Inter, sans-serif" }}>
+        <p style={{ color: "#64748B" }}>Loading Studio Editor...</p>
       </div>
     );
   }
 
-  const contentJson = page.contentJson || {};
-  const sections = contentJson.sections || [];
-  const themeTokens = contentJson.themeTokens || {};
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(JSON.stringify(contentJson, null, 2));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-
   return (
-    <div style={styles.container}>
-      {/* Top Navigation Bar */}
-      <div style={styles.header}>
-        <div style={styles.headerLeft}>
-          <Link to="/app/page-builder" style={styles.backLink}>
-            <ArrowLeft size={16} />
-            <span>Page Builder</span>
-          </Link>
+    <div className="pm-editor-root">
+      {/* Top Header */}
+      <EditorHeader
+        pageTitle={pageTitle}
+        setPageTitle={(title) => {
+          setPageTitle(title);
+          updateSectionsInState(sections);
+        }}
+        pageStatus={page.status || "DRAFT"}
+        deviceMode={deviceMode}
+        setDeviceMode={setDeviceMode}
+        onSave={handleSave}
+        onPreview={handlePreview}
+        onPublish={handlePublish}
+        isSaving={fetcher.state === "submitting"}
+      />
 
-          <div style={styles.divider} />
+      {/* 3-Column Body */}
+      <div className="pm-editor-body">
+        {/* Left Column: Layers Panel */}
+        <EditorLayersPanel
+          sections={sections}
+          selectedSectionId={selectedSectionId}
+          setSelectedSectionId={setSelectedSectionId}
+          onToggleVisibility={handleToggleVisibility}
+          onMoveSection={handleMoveSection}
+          onDeleteSection={handleDeleteSection}
+          onAddSection={handleAddSection}
+        />
 
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <h1 style={styles.pageTitle}>{page.title}</h1>
-              <span style={styles.badgeDraft}>{page.status}</span>
-            </div>
-            <p style={styles.pageMeta}>
-              Handle: <code>/{page.handle}</code> • Type: <strong>{page.pageType}</strong> • Style: <strong>{page.stylePreset}</strong>
-            </p>
-          </div>
-        </div>
+        {/* Center Column: Live Responsive Canvas */}
+        <EditorPreviewCanvas
+          sections={sections}
+          themeTokens={themeTokens}
+          selectedSectionId={selectedSectionId}
+          setSelectedSectionId={setSelectedSectionId}
+          deviceMode={deviceMode}
+        />
 
-        <div style={styles.headerRight}>
-          <div style={styles.tokenPill}>
-            <span>🪙</span>
-            <span><strong>{shopSettings?.pageCredits ?? 20}</strong> credits left</span>
-          </div>
-
-          <button onClick={handleCopy} style={styles.btnSecondary} type="button">
-            {copied ? <Check size={14} color="#16A34A" /> : <Copy size={14} />}
-            <span>{copied ? "Copied JSON!" : "Copy JSON"}</span>
-          </button>
-        </div>
+        {/* Right Column: Dynamic Inspector Panel */}
+        <EditorInspectorPanel
+          selectedSection={selectedSection}
+          onUpdateSectionData={handleUpdateSectionData}
+          onAiReRoll={handleAiReRoll}
+          isReRolling={fetcher.state === "submitting"}
+        />
       </div>
-
-      {/* Overview Metric Row */}
-      <div style={styles.metricRow}>
-        <div style={styles.metricCard}>
-          <div style={styles.metricIconWrap("#EFF6FF")}>
-            <Layers size={18} color="#0052FF" />
-          </div>
-          <div>
-            <div style={styles.metricValue}>{sections.length} Sections</div>
-            <div style={styles.metricLabel}>Generated Section Tree</div>
-          </div>
-        </div>
-
-        <div style={styles.metricCard}>
-          <div style={styles.metricIconWrap("#FEF3C7")}>
-            <Palette size={18} color="#D97706" />
-          </div>
-          <div>
-            <div style={styles.metricValue}>{Object.keys(themeTokens).length} Tokens</div>
-            <div style={styles.metricLabel}>Theme Variables Injected</div>
-          </div>
-        </div>
-
-        <div style={styles.metricCard}>
-          <div style={styles.metricIconWrap("#F3E8FF")}>
-            <Sparkles size={18} color="#9333EA" />
-          </div>
-          <div>
-            <div style={styles.metricValue}>Milestone 2 Verified</div>
-            <div style={styles.metricLabel}>OpenRouter Structured Output</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mode Switch Tabs */}
-      <div style={styles.tabContainer}>
-        <button
-          style={styles.tab(viewMode === "sections")}
-          onClick={() => setViewMode("sections")}
-          type="button"
-        >
-          <Layers size={15} />
-          <span>Section Breakdown ({sections.length})</span>
-        </button>
-        <button
-          style={styles.tab(viewMode === "raw")}
-          onClick={() => setViewMode("raw")}
-          type="button"
-        >
-          <Code size={15} />
-          <span>Raw Structured JSON</span>
-        </button>
-      </div>
-
-      {/* Main Content Area */}
-      {viewMode === "sections" ? (
-        <div style={styles.sectionGrid}>
-          {sections.map((sec, idx) => (
-            <div key={sec.id || idx} style={styles.sectionCard}>
-              <div style={styles.sectionHeader}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={styles.sectionIndex}>{idx + 1}</span>
-                  <span style={styles.sectionType}>{sec.type}</span>
-                </div>
-                <span style={styles.sectionId}>{sec.id}</span>
-              </div>
-
-              <div style={styles.sectionBody}>
-                {sec.data ? (
-                  <pre style={styles.sectionJson}>
-                    {JSON.stringify(sec.data, null, 2)}
-                  </pre>
-                ) : (
-                  <p style={{ color: "#94A3B8", fontSize: "13px" }}>No data payload</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={styles.rawJsonCard}>
-          <pre style={styles.rawJsonPre}>
-            {JSON.stringify(contentJson, null, 2)}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }
-
-const styles = {
-  container: {
-    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    padding: "24px 32px 60px",
-    background: "#F8FAFC",
-    minHeight: "100vh",
-    color: "#0F172A",
-    boxSizing: "border-box",
-  },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "24px",
-    background: "#FFFFFF",
-    padding: "16px 24px",
-    borderRadius: "14px",
-    border: "1px solid #E2E8F0",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
-  },
-  headerLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-  },
-  headerRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  backLink: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "8px 12px",
-    background: "#F1F5F9",
-    border: "1px solid #CBD5E1",
-    borderRadius: "8px",
-    color: "#475569",
-    textDecoration: "none",
-    fontSize: "13px",
-    fontWeight: "600",
-  },
-  divider: {
-    width: "1px",
-    height: "36px",
-    background: "#E2E8F0",
-  },
-  pageTitle: {
-    margin: 0,
-    fontSize: "18px",
-    fontWeight: "700",
-    color: "#0B192C",
-  },
-  pageMeta: {
-    margin: "2px 0 0",
-    fontSize: "12.5px",
-    color: "#64748B",
-  },
-  badgeDraft: {
-    padding: "2px 8px",
-    borderRadius: "6px",
-    background: "#FEF3C7",
-    color: "#92400E",
-    border: "1px solid #FDE68A",
-    fontSize: "11px",
-    fontWeight: "700",
-    letterSpacing: "0.03em",
-  },
-  tokenPill: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "6px 14px",
-    background: "#EFF6FF",
-    border: "1px solid #BFDBFE",
-    borderRadius: "999px",
-    fontSize: "13px",
-    color: "#1E40AF",
-  },
-  btnPrimary: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "10px 18px",
-    background: "#0052FF",
-    color: "#FFFFFF",
-    borderRadius: "8px",
-    textDecoration: "none",
-    fontSize: "13.5px",
-    fontWeight: "600",
-  },
-  btnSecondary: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "8px 14px",
-    background: "#FFFFFF",
-    border: "1px solid #CBD5E1",
-    borderRadius: "8px",
-    color: "#334155",
-    fontSize: "13px",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  metricRow: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "16px",
-    marginBottom: "24px",
-  },
-  metricCard: {
-    background: "#FFFFFF",
-    border: "1px solid #E2E8F0",
-    borderRadius: "12px",
-    padding: "16px 20px",
-    display: "flex",
-    alignItems: "center",
-    gap: "14px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-  },
-  metricIconWrap: (bg) => ({
-    width: "40px",
-    height: "40px",
-    borderRadius: "10px",
-    background: bg,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  }),
-  metricValue: {
-    fontSize: "16px",
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  metricLabel: {
-    fontSize: "12px",
-    color: "#64748B",
-    marginTop: "2px",
-  },
-  tabContainer: {
-    display: "flex",
-    gap: "8px",
-    marginBottom: "16px",
-    borderBottom: "1px solid #E2E8F0",
-    paddingBottom: "10px",
-  },
-  tab: (active) => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "8px 16px",
-    borderRadius: "8px",
-    border: "none",
-    background: active ? "#0052FF" : "transparent",
-    color: active ? "#FFFFFF" : "#64748B",
-    fontSize: "13.5px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-  }),
-  sectionGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: "16px",
-  },
-  sectionCard: {
-    background: "#FFFFFF",
-    border: "1px solid #E2E8F0",
-    borderRadius: "12px",
-    overflow: "hidden",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
-  },
-  sectionHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "12px 18px",
-    background: "#F8FAFC",
-    borderBottom: "1px solid #E2E8F0",
-  },
-  sectionIndex: {
-    width: "22px",
-    height: "22px",
-    borderRadius: "50%",
-    background: "#0052FF",
-    color: "#FFFFFF",
-    fontSize: "11px",
-    fontWeight: "700",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sectionType: {
-    fontSize: "13.5px",
-    fontWeight: "700",
-    color: "#0F172A",
-    letterSpacing: "0.02em",
-  },
-  sectionId: {
-    fontSize: "11.5px",
-    color: "#94A3B8",
-    fontFamily: "monospace",
-  },
-  sectionBody: {
-    padding: "14px 18px",
-    background: "#FFFFFF",
-  },
-  sectionJson: {
-    margin: 0,
-    fontSize: "12.5px",
-    lineHeight: "1.5",
-    color: "#1E293B",
-    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-    background: "#F8FAFC",
-    padding: "12px",
-    borderRadius: "8px",
-    border: "1px solid #E2E8F0",
-    overflowX: "auto",
-    maxHeight: "300px",
-  },
-  rawJsonCard: {
-    background: "#0F172A",
-    borderRadius: "12px",
-    padding: "20px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-  },
-  rawJsonPre: {
-    margin: 0,
-    fontSize: "13px",
-    lineHeight: "1.6",
-    color: "#38BDF8",
-    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-    overflowX: "auto",
-    maxHeight: "75vh",
-  },
-  emptyCard: {
-    maxWidth: "420px",
-    margin: "80px auto",
-    textAlign: "center",
-    background: "#FFFFFF",
-    padding: "36px",
-    borderRadius: "14px",
-    border: "1px solid #E2E8F0",
-  },
-};

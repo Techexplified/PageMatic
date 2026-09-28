@@ -472,80 +472,50 @@
 }
 
 /* ==========================================================================
-   Actions 3-Dot Dropdown Menu
+   Side-by-Side Action Buttons (Preview, Edit, Delete)
    ========================================================================== */
 
-.pm-actions-wrapper {
-  position: relative;
-  display: inline-block;
+.pm-row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
-.pm-btn-dots {
-  display: flex;
+.pm-action-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: transparent;
-  border: none;
   border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
   color: #64748B;
   cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pm-btn-dots:hover,
-.pm-btn-dots--active {
-  background: #F1F5F9;
-  color: var(--pm-dash-heading);
-}
-
-.pm-dropdown-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 6px;
-  width: 150px;
-  background: #FFFFFF;
-  border: 1px solid var(--pm-dash-border);
-  border-radius: 12px;
-  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-  padding: 6px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pm-dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 12px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--pm-dash-heading);
-  background: transparent;
-  border: none;
-  border-radius: 6px;
   text-decoration: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
   box-sizing: border-box;
 }
 
-.pm-dropdown-item:hover {
-  background: #F8FAFC;
+.pm-action-btn:hover {
+  transform: translateY(-1px);
 }
 
-.pm-dropdown-item--delete {
-  color: #EF4444;
+.pm-action-btn--preview:hover,
+.pm-action-btn--edit:hover {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #0052FF;
+  box-shadow: 0 2px 6px rgba(0, 82, 255, 0.12);
 }
 
-.pm-dropdown-item--delete:hover {
+.pm-action-btn--delete:hover {
   background: #FEF2F2;
+  border-color: #FECACA;
+  color: #EF4444;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.12);
 }
 
 /* ==========================================================================

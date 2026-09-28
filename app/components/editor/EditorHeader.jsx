@@ -34,9 +34,9 @@ export default function EditorHeader({
     <header className="pm-editor-header">
       {/* Left: Back Link & Page Title */}
       <div className="pm-editor-header-left">
-        <Link to="/app/page-builder" className="pm-editor-back-btn">
+        <Link to="/app/dashboard" className="pm-editor-back-btn" title="Back to Dashboard">
           <ArrowLeft size={15} />
-          <span>Exit</span>
+          <span>Dashboard</span>
         </Link>
 
         <div style={{ width: "1px", height: "24px", background: "#E2E8F0" }} />
@@ -83,12 +83,13 @@ export default function EditorHeader({
           className="pm-btn-secondary"
           onClick={handleSaveClick}
           disabled={isSaving}
-          style={{ padding: "8px 14px", fontSize: "13px" }}
         >
-          {saveSuccess ? (
+          {isSaving ? (
+            <span>Saving...</span>
+          ) : saveSuccess ? (
             <>
               <Check size={14} color="#16A34A" />
-              <span style={{ color: "#16A34A" }}>Saved</span>
+              <span style={{ color: "#16A34A" }}>Saved!</span>
             </>
           ) : (
             <>
@@ -102,7 +103,6 @@ export default function EditorHeader({
           type="button"
           className="pm-btn-secondary"
           onClick={onPreview}
-          style={{ padding: "8px 14px", fontSize: "13px" }}
           title="Open sandboxed preview in new tab (zero Shopify pollution)"
         >
           <Eye size={14} />
@@ -113,7 +113,6 @@ export default function EditorHeader({
           type="button"
           className="pm-btn-primary"
           onClick={onPublish}
-          style={{ padding: "8px 18px", fontSize: "13px" }}
         >
           <UploadCloud size={15} />
           <span>Publish Page</span>

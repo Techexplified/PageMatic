@@ -142,7 +142,90 @@
 .pm-editor-header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+/* Secondary Action Buttons (Save, Preview) */
+.pm-editor-header-right .pm-btn-secondary,
+.pm-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 14px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.pm-editor-header-right .pm-btn-secondary:hover:not(:disabled),
+.pm-btn-secondary:hover:not(:disabled) {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.pm-editor-header-right .pm-btn-secondary:active:not(:disabled),
+.pm-btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+  background: #F1F5F9;
+}
+
+.pm-editor-header-right .pm-btn-secondary:disabled,
+.pm-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Primary Action Button (Publish Page) */
+.pm-editor-header-right .pm-btn-primary,
+.pm-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 18px;
+  background: var(--pm-editor-primary, #0052FF);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 82, 255, 0.28);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.pm-editor-header-right .pm-btn-primary:hover:not(:disabled),
+.pm-btn-primary:hover:not(:disabled) {
+  background: var(--pm-editor-primary-hover, #0045D8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 82, 255, 0.38);
+}
+
+.pm-editor-header-right .pm-btn-primary:active:not(:disabled),
+.pm-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.pm-editor-header-right .pm-btn-primary:disabled,
+.pm-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* ==========================================================================

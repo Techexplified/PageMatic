@@ -34,7 +34,7 @@ export const loader = async ({ request }) => {
 
   const pages = await db.page.findMany({
     where: { shopId: shopSettings.id },
-    orderBy: { createdAt: "desc" },
+    orderBy: { updatedAt: "desc" },
   });
 
   return data({ shopSettings, pages });
@@ -82,18 +82,13 @@ export const action = async ({ request }) => {
 export default function Dashboard() {
   const { shopSettings, pages } = useLoaderData();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeMenuId, setActiveMenuId] = useState(null);
   const [isTokenInfoOpen, setIsTokenInfoOpen] = useState(false);
   const fetcher = useFetcher();
-  const menuRef = useRef(null);
   const tokenPopoverRef = useRef(null);
 
-  // Close dropdowns and popovers when clicking outside
+  // Close popover when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setActiveMenuId(null);
-      }
       if (tokenPopoverRef.current && !tokenPopoverRef.current.contains(event.target)) {
         setIsTokenInfoOpen(false);
       }
@@ -139,13 +134,17 @@ export default function Dashboard() {
 
       if (!content) return null;
 
-      // Check hero section or direct section image
+      // Check sections tree for images
       if (content.sections && Array.isArray(content.sections)) {
         for (const sec of content.sections) {
-          if (sec?.content?.imageUrl) return sec.content.imageUrl;
+          if (sec?.data?.imageUrl) return sec.data.imageUrl;
+          if (sec?.data?.galleryImages?.[0]) return sec.data.galleryImages[0];
+          if (sec?.data?.products?.[0]?.imageUrl) return sec.data.products[0].imageUrl;
+          if (sec?.data?.rows?.[0]?.imageUrl) return sec.data.rows[0].imageUrl;
+          if (sec?.data?.items?.[0]?.imageUrl) return sec.data.items[0].imageUrl;
         }
       }
-      return content?.hero?.imageUrl || null;
+      return content?.imageUrl || null;
     } catch {
       return null;
     }
@@ -176,7 +175,29 @@ export default function Dashboard() {
   const handleDelete = (pageId) => {
     if (confirm("Are you sure you want to delete this page?")) {
       fetcher.submit({ intent: "delete_page", pageId }, { method: "post" });
-      setActiveMenuId(null);
+    }
+  };
+
+  // Handle preview in standalone tab
+  const handlePreviewPage = (page) => {
+    if (typeof window !== "undefined") {
+      const payload = {
+        ...page,
+        contentJson: typeof page.contentJson === "string" ? JSON.parse(page.contentJson) : page.contentJson,
+      };
+      localStorage.setItem("pagematic_live_preview", JSON.stringify(payload));
+      sessionStorage.setItem("pagematic_live_preview", JSON.stringify(payload));
+
+      if ("BroadcastChannel" in window) {
+        try {
+          const bc = new BroadcastChannel("pagematic_preview_sync");
+          bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: payload });
+          setTimeout(() => bc.close(), 200);
+        } catch (e) {}
+      }
+
+      const targetUrl = page?.id ? `/preview?pageId=${page.id}` : "/preview";
+      window.open(targetUrl, "_blank");
     }
   };
 
@@ -292,7 +313,7 @@ export default function Dashboard() {
         </div>
 
         {/* Table Content */}
-        <div className="pm-table-wrapper" ref={menuRef}>
+        <div className="pm-table-wrapper">
           {filteredPages.length > 0 ? (
             <table className="pm-pages-table">
               <thead>
@@ -300,15 +321,14 @@ export default function Dashboard() {
                   <th className="pm-col-idx">#</th>
                   <th>Page name</th>
                   <th>Page type</th>
-                  <th>Created on</th>
-                  <th>Publish</th>
-                  <th style={{ textAlign: "right", paddingRight: "36px" }}>Actions</th>
+                  <th>Last Updated</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: "right", paddingRight: "28px" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPages.map((page, index) => {
                   const thumb = getThumbnail(page);
-                  const isMenuOpen = activeMenuId === page.id;
                   const isPublished = page.status === "PUBLISHED";
 
                   return (
@@ -318,7 +338,11 @@ export default function Dashboard() {
 
                       {/* 2. Page Name + Thumbnail / Icon */}
                       <td>
-                        <div className="pm-page-name-cell">
+                        <Link
+                          to={`/app/editor?pageId=${page.id}`}
+                          className="pm-page-name-cell"
+                          style={{ textDecoration: "none", color: "inherit" }}
+                        >
                           {thumb ? (
                             <img
                               src={thumb}
@@ -331,7 +355,7 @@ export default function Dashboard() {
                             </div>
                           )}
                           <span className="pm-page-title-text">{page.title}</span>
-                        </div>
+                        </Link>
                       </td>
 
                       {/* 3. Page Type */}
@@ -341,73 +365,63 @@ export default function Dashboard() {
                         </span>
                       </td>
 
-                      {/* 4. Created Date */}
+                      {/* 4. Updated Date */}
                       <td>
                         <span className="pm-page-date-text">
-                          {formatDate(page.createdAt)}
+                          {formatDate(page.updatedAt || page.createdAt)}
                         </span>
                       </td>
 
-                      {/* 5. Publish Toggle Switch */}
+                      {/* 5. Status Badge */}
                       <td>
-                        <label className="pm-toggle-switch">
-                          <input
-                            type="checkbox"
-                            checked={isPublished}
-                            onChange={() => handleTogglePublish(page)}
-                          />
-                          <span className="pm-toggle-slider" />
-                        </label>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            fontSize: "11.5px",
+                            fontWeight: "700",
+                            background: isPublished ? "#DCFCE7" : "#FEF3C7",
+                            color: isPublished ? "#15803D" : "#92400E",
+                            border: isPublished ? "1px solid #BBF7D0" : "1px solid #FDE68A",
+                          }}
+                        >
+                          {isPublished ? "PUBLISHED" : "DRAFT"}
+                        </span>
                       </td>
 
-                      {/* 6. 3-Dot Actions Menu */}
-                      <td style={{ textAlign: "right", paddingRight: "36px" }}>
-                        <div className="pm-actions-wrapper">
+                      {/* 6. Side-by-Side Action Icons */}
+                      <td style={{ textAlign: "right", paddingRight: "28px" }}>
+                        <div className="pm-row-actions">
+                          {/* Preview in Sandbox */}
                           <button
                             type="button"
-                            onClick={() =>
-                              setActiveMenuId(isMenuOpen ? null : page.id)
-                            }
-                            className={`pm-btn-dots ${isMenuOpen ? "pm-btn-dots--active" : ""}`}
-                            title="Actions"
+                            className="pm-action-btn pm-action-btn--preview"
+                            onClick={() => handlePreviewPage(page)}
+                            title="Preview in Sandbox"
                           >
-                            <MoreHorizontal size={18} />
+                            <Eye size={15} />
                           </button>
 
-                          {/* Dropdown Menu (Preview, Edit, Delete) */}
-                          {isMenuOpen && (
-                            <div className="pm-dropdown-menu">
-                              <button
-                                type="button"
-                                className="pm-dropdown-item"
-                                onClick={() => {
-                                  setActiveMenuId(null);
-                                  // UI placeholder for preview
-                                }}
-                              >
-                                <Eye size={14} />
-                                Preview
-                              </button>
+                          {/* Edit in Studio */}
+                          <Link
+                            to={`/app/editor?pageId=${page.id}`}
+                            className="pm-action-btn pm-action-btn--edit"
+                            title="Edit in Studio"
+                          >
+                            <Edit3 size={15} />
+                          </Link>
 
-                              <Link
-                                to={`/app/editor/${page.id}`}
-                                className="pm-dropdown-item"
-                                onClick={() => setActiveMenuId(null)}
-                              >
-                                <Edit3 size={14} />
-                                Edit
-                              </Link>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(page.id)}
-                                className="pm-dropdown-item pm-dropdown-item--delete"
-                              >
-                                <Trash2 size={14} />
-                                Delete
-                              </button>
-                            </div>
-                          )}
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(page.id)}
+                            className="pm-action-btn pm-action-btn--delete"
+                            title="Delete page"
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -427,18 +441,18 @@ export default function Dashboard() {
               <p className="pm-empty-desc">
                 {searchQuery
                   ? "Try searching with a different term."
-                  : "Your created storefront pages will appear here once generated."}
+                  : "Generate your first high-converting storefront landing page now."}
               </p>
-              {/* {!searchQuery && (
+              {!searchQuery && (
                 <Link
-                  to="/app"
+                  to="/app/page-builder"
                   style={{
                     marginTop: "16px",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
                     padding: "10px 22px",
-                    background: "var(--pm-primary)",
+                    background: "#0052FF",
                     color: "#FFFFFF",
                     borderRadius: "10px",
                     fontWeight: 700,
@@ -449,7 +463,7 @@ export default function Dashboard() {
                 >
                   + Build New Page
                 </Link>
-              )} */}
+              )}
             </div>
           )}
         </div>

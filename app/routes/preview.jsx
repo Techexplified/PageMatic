@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useLoaderData } from "react-router";
+import db from "../db.server";
 import SectionRenderer from "../components/editor/SectionRenderers";
 
 export const meta = () => {
@@ -8,12 +10,38 @@ export const meta = () => {
   ];
 };
 
-export const loader = () => {
-  return null;
+export const loader = async ({ request }) => {
+  const url = new URL(request.url);
+  const pageId = url.searchParams.get("pageId");
+
+  if (pageId) {
+    try {
+      const page = await db.page.findUnique({
+        where: { id: pageId },
+      });
+      if (page) {
+        const parsedContent =
+          typeof page.contentJson === "string"
+            ? JSON.parse(page.contentJson)
+            : page.contentJson;
+        return {
+          initialPage: {
+            ...page,
+            contentJson: parsedContent,
+          },
+        };
+      }
+    } catch (e) {
+      console.error("[Preview Loader] Failed to load page by pageId:", e);
+    }
+  }
+
+  return { initialPage: null };
 };
 
 export default function StandaloneLivePreview() {
-  const [page, setPage] = useState(null);
+  const loaderData = useLoaderData();
+  const [page, setPage] = useState(loaderData?.initialPage || null);
   const [bannerVisible, setBannerVisible] = useState(true);
 
   useEffect(() => {
@@ -29,19 +57,22 @@ export default function StandaloneLivePreview() {
       return false;
     };
 
-    // 1. Initial load from localStorage / sessionStorage
-    const stored =
-      localStorage.getItem("pagematic_live_preview") ||
-      localStorage.getItem("pagematic_generated_page") ||
-      sessionStorage.getItem("pagematic_live_preview") ||
-      sessionStorage.getItem("pagematic_generated_page");
+    // If already loaded from server loader, don't overwrite unless newer data comes in
+    if (!page) {
+      // 1. Initial load from localStorage / sessionStorage
+      const stored =
+        localStorage.getItem("pagematic_live_preview") ||
+        localStorage.getItem("pagematic_generated_page") ||
+        sessionStorage.getItem("pagematic_live_preview") ||
+        sessionStorage.getItem("pagematic_generated_page");
 
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        trySetPage(parsed);
-      } catch (e) {
-        console.warn("Preview parse error:", e);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          trySetPage(parsed);
+        } catch (e) {
+          console.warn("Preview parse error:", e);
+        }
       }
     }
 

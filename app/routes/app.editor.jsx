@@ -37,13 +37,118 @@ export const loader = async ({ request }) => {
 };
 
 // ============================================================================
-// ACTION (Handles AI Micro-Edits & Section Re-rolls via Groq)
+// ============================================================================
+// ACTION (Handles AI Micro-Edits & Page Saving to Database)
 // ============================================================================
 export const action = async ({ request }) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
 
+  let shopSettings = await db.shopSettings.findUnique({
+    where: { shop: session.shop },
+  });
+
+  if (!shopSettings) {
+    shopSettings = await db.shopSettings.create({
+      data: { shop: session.shop },
+    });
+  }
+
+  // 1. SAVE PAGE TO NEON DATABASE (DRAFT OR UPDATE)
+  if (intent === "SAVE_PAGE") {
+    const pageId = formData.get("pageId");
+    const title = formData.get("title") || "Untitled Page";
+    const handle = formData.get("handle") || "";
+    const pageType = formData.get("pageType") || "LANDING";
+    const stylePreset = formData.get("stylePreset") || "minimal";
+    const targetProductId = formData.get("targetProductId") || null;
+    const contentJsonStr = formData.get("contentJson");
+
+    let contentJson = {};
+    try {
+      if (contentJsonStr) contentJson = JSON.parse(contentJsonStr);
+    } catch (e) {
+      console.warn("contentJson parse error in save action:", e);
+    }
+
+    const baseHandle = (handle || title)
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "page";
+
+    let finalHandle = baseHandle;
+    let savedPage = null;
+
+    // If existing page in database, update it
+    if (pageId && !pageId.startsWith("temp")) {
+      const existing = await db.page.findFirst({
+        where: { id: String(pageId), shopId: shopSettings.id },
+      });
+
+      if (existing) {
+        savedPage = await db.page.update({
+          where: { id: existing.id },
+          data: {
+            title,
+            pageType,
+            stylePreset,
+            targetProductId: targetProductId || existing.targetProductId,
+            seoTitle: contentJson.title || title,
+            seoDescription: contentJson.seoDescription || null,
+            contentJson,
+            updatedAt: new Date(),
+          },
+        });
+      }
+    }
+
+    // If new page (or temp ID), create record with collision-free handle
+    if (!savedPage) {
+      let counter = 1;
+      while (true) {
+        const collision = await db.page.findUnique({
+          where: {
+            shopId_handle: {
+              shopId: shopSettings.id,
+              handle: finalHandle,
+            },
+          },
+        });
+        if (!collision) break;
+        counter++;
+        finalHandle = `${baseHandle}-${counter}`;
+      }
+
+      savedPage = await db.page.create({
+        data: {
+          shopId: shopSettings.id,
+          title,
+          handle: finalHandle,
+          pageType,
+          status: "DRAFT",
+          stylePreset,
+          targetProductId,
+          seoTitle: contentJson.title || title,
+          seoDescription: contentJson.seoDescription || null,
+          contentJson,
+        },
+      });
+    }
+
+    console.log(`[Editor] Successfully saved page "${savedPage.title}" (ID: ${savedPage.id}, Handle: ${savedPage.handle}) for ${session.shop}`);
+
+    return data({
+      success: true,
+      savedPage,
+      pageId: savedPage.id,
+      message: "Page saved successfully",
+    });
+  }
+
+  // 2. GROQ / AI MICRO-EDIT RE-ROLL
   if (intent === "REROLL_SECTION") {
     const sectionType = formData.get("sectionType");
     const currentDataStr = formData.get("currentData");
@@ -67,12 +172,10 @@ ${JSON.stringify(currentData, null, 2)}
 Return the updated data JSON object:`;
 
     try {
-      // Try Groq for sub-second re-roll; if no key, return modified local data
       let updatedData;
       if (process.env.GROQ_API_KEY) {
         updatedData = await generateWithGroq({ systemPrompt, userPrompt });
       } else {
-        // Fallback demo tweak
         updatedData = {
           ...currentData,
           headline: currentData.headline ? `✨ ${currentData.headline}` : undefined,
@@ -105,6 +208,16 @@ export default function StudioEditor() {
 
   // Initialize from sessionStorage or loader on mount
   useEffect(() => {
+    // If loader provided page directly by ID from database, prioritize it
+    if (loaderPage) {
+      setPage(loaderPage);
+      setPageTitle(loaderPage.title || "Untitled Page");
+      if (loaderPage.contentJson?.sections?.length > 0) {
+        setSelectedSectionId(loaderPage.contentJson.sections[0].id);
+      }
+      return;
+    }
+
     if (typeof window !== "undefined") {
       const stored = sessionStorage.getItem("pagematic_generated_page");
       if (stored) {
@@ -123,15 +236,25 @@ export default function StudioEditor() {
         }
       }
     }
+  }, [loaderPage]);
 
-    if (loaderPage) {
-      setPage(loaderPage);
-      setPageTitle(loaderPage.title || "Untitled Page");
-      if (loaderPage.contentJson?.sections?.length > 0) {
-        setSelectedSectionId(loaderPage.contentJson.sections[0].id);
+  // Sync state when page is saved to database
+  useEffect(() => {
+    if (fetcher.data?.savedPage) {
+      const persisted = fetcher.data.savedPage;
+      setPage(persisted);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("pagematic_generated_page", JSON.stringify(persisted));
+        localStorage.setItem("pagematic_live_preview", JSON.stringify(persisted));
+
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("pageId") !== persisted.id) {
+          url.searchParams.set("pageId", persisted.id);
+          window.history.replaceState({}, "", url.toString());
+        }
       }
     }
-  }, [loaderPage]);
+  }, [fetcher.data]);
 
   // Handle Groq Re-roll action response
   useEffect(() => {
@@ -179,7 +302,7 @@ export default function StudioEditor() {
   const handleAddSection = () => {
     const newSec = {
       id: `sec_custom_${Date.now()}`,
-      type: "BENEFITS",
+      type: "BENEFITS_GRID",
       visible: true,
       data: {
         heading: "New Custom Section",
@@ -187,6 +310,7 @@ export default function StudioEditor() {
         items: [
           { title: "Point 1", description: "Highlight your key feature." },
           { title: "Point 2", description: "Another conversion driver." },
+          { title: "Point 3", description: "Risk-free guarantee or support." },
         ],
       },
     };
@@ -259,13 +383,25 @@ export default function StudioEditor() {
     }
   };
 
-  // 7. Save Draft
+  // 7. Save Draft Page to PostgreSQL Database
   const handleSave = () => {
+    const payload = { ...page, title: pageTitle, contentJson };
     if (typeof window !== "undefined") {
-      const payload = { ...page, title: pageTitle, contentJson };
       sessionStorage.setItem("pagematic_generated_page", JSON.stringify(payload));
       localStorage.setItem("pagematic_live_preview", JSON.stringify(payload));
     }
+
+    const formData = new FormData();
+    formData.append("intent", "SAVE_PAGE");
+    formData.append("pageId", page?.id || "");
+    formData.append("title", pageTitle || "Untitled Page");
+    formData.append("handle", page?.handle || "");
+    formData.append("pageType", page?.pageType || "LANDING");
+    formData.append("stylePreset", page?.stylePreset || "minimal");
+    formData.append("targetProductId", page?.targetProductId || "");
+    formData.append("contentJson", JSON.stringify(contentJson));
+
+    fetcher.submit(formData, { method: "POST" });
   };
 
   // 8. Standalone Sandboxed Live Preview in New Tab (Zero Shopify store pollution)
@@ -275,7 +411,8 @@ export default function StudioEditor() {
       localStorage.setItem("pagematic_live_preview", JSON.stringify(payload));
       sessionStorage.setItem("pagematic_live_preview", JSON.stringify(payload));
 
-      const previewWin = window.open("/preview", "_blank");
+      const targetUrl = page?.id ? `/preview?pageId=${page.id}` : "/preview";
+      const previewWin = window.open(targetUrl, "_blank");
 
       // Broadcast and direct postMessage
       if ("BroadcastChannel" in window) {
@@ -296,9 +433,9 @@ export default function StudioEditor() {
     }
   };
 
-  // 9. Publish (Milestone 4 placeholder)
+  // 9. Publish (Reserved for Step 5)
   const handlePublish = () => {
-    alert(`Ready for Milestone 4! Publishing "${pageTitle}" directly to your Shopify Online Store.`);
+    alert(`Ready for Step 5! Publishing "${pageTitle}" directly to your Shopify Online Store.`);
   };
 
   if (!page) {

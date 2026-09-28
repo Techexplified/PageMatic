@@ -1,10 +1,13 @@
 import db from "../db.server";
 import { PAGE_COST_CREDITS, STYLE_THEME_TOKENS } from "../libs/ai-config";
 import { generateWithOpenRouter } from "./openrouter.server";
-import { buildPageGenerationPrompt } from "./prompt-builder.server";
+import {
+  buildStrategicPlanPrompt,
+  assemblePageFromPlan,
+} from "./prompt-builder.server";
 
 /**
- * Master orchestrator for generating and saving an AI Page.
+ * Master orchestrator for generating and saving an AI Page via 2-Step Strategic Pipeline.
  */
 export async function generateAndPersistPage({
   shop,
@@ -14,6 +17,8 @@ export async function generateAndPersistPage({
   niche = "General E-commerce",
   promptText = "",
   selectedProduct = null,
+  selectedProducts = [],
+  selectedCollection = null,
   selectedPolicies = [],
   availablePolicies = [],
   storeContext = null,
@@ -22,13 +27,12 @@ export async function generateAndPersistPage({
     throw new Error("Shop domain is required.");
   }
 
-  // 1. Fetch / ensure ShopSettings and verify credit balance
+  // 1. Fetch / ensure ShopSettings
   let settings = await db.shopSettings.findUnique({
     where: { shop },
   });
 
   if (!settings) {
-    // Create default settings if first time
     settings = await db.shopSettings.create({
       data: {
         shop,
@@ -39,38 +43,45 @@ export async function generateAndPersistPage({
     });
   }
 
-  // 2. Build system and user prompts with full store context
-  const { systemPrompt, userPrompt } = buildPageGenerationPrompt({
+  // 2. STEP 1: Build Strategic Planning Prompt & Query LLM (Pass 1)
+  console.log(`[PageGenerator] STEP 1: Synthesizing strategic plan & copywriting for: ${shop} (Type: ${pageType})`);
+  const { systemPrompt, userPrompt, targetProduct, activeGridProducts } = buildStrategicPlanPrompt({
     pageType,
     stylePreset,
     pageTitle,
     niche,
     promptText,
     selectedProduct,
+    selectedProducts,
+    selectedCollection,
     selectedPolicies,
     storeContext,
   });
 
-  // 3. Call OpenRouter API with fallback rotation
-  console.log(`[PageGenerator] Starting page synthesis for shop: ${shop}`);
-  const { data: generatedJson, modelUsed } = await generateWithOpenRouter({
+  const { data: planJson, modelUsed } = await generateWithOpenRouter({
     systemPrompt,
     userPrompt,
   });
 
-  // 4. Normalize and validate Section Tree
-  const sanitizedContent = normalizePageContent({
-    rawJson: generatedJson,
+  // 3. STEP 2: Assemble Deterministic Page Schema with Image & Variant Bindings (Pass 2)
+  console.log(`[PageGenerator] STEP 2: Assembling layout & section tree for: ${shop} (Type: ${pageType})`);
+  const sanitizedContent = assemblePageFromPlan({
+    planJson,
     pageType,
     stylePreset,
-    fallbackTitle: pageTitle,
+    pageTitle,
+    targetProduct,
+    activeGridProducts,
+    storeProducts: storeContext?.products || [],
+    storeCollections: storeContext?.collections || [],
+    shopInfo: storeContext?.shop || {},
   });
 
-  // 5. Generate unique slug handle for this page within the shop
+  // 4. Generate unique slug handle for this page within the shop
   const finalTitle = sanitizedContent.title || pageTitle || "Untitled Page";
   const handle = await generateUniqueHandle(settings.id, finalTitle);
 
-  // 6. In-Memory Page Construction (No DB save for now)
+  // 5. In-Memory Page Construction (Draft)
   const tempPage = {
     id: `temp_${Date.now()}`,
     shopId: settings.id,
@@ -78,7 +89,7 @@ export async function generateAndPersistPage({
     handle: handle,
     pageType: pageType,
     stylePreset: stylePreset,
-    targetProductId: selectedProduct?.id || null,
+    targetProductId: targetProduct?.id || selectedProduct?.id || null,
     seoTitle: sanitizedContent.title,
     seoDescription: sanitizedContent.seoDescription || null,
     contentJson: sanitizedContent,
@@ -86,7 +97,7 @@ export async function generateAndPersistPage({
     createdAt: new Date().toISOString(),
   };
 
-  console.log(`[PageGenerator] In-memory page synthesized successfully (Handle: ${handle}) using ${modelUsed}`);
+  console.log(`[PageGenerator] 2-Step Page synthesized successfully (Handle: ${handle}) using ${modelUsed}`);
 
   return {
     success: true,

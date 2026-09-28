@@ -18,6 +18,7 @@ async function fetchStoreCatalog(admin) {
     query GetStoreCatalog {
       shop {
         name
+        email
         myshopifyDomain
         currencyCode
         primaryDomain {
@@ -37,10 +38,27 @@ async function fetchStoreCatalog(admin) {
               url
               altText
             }
+            images(first: 6) {
+              edges {
+                node {
+                  url
+                  altText
+                }
+              }
+            }
             priceRangeV2 {
               minVariantPrice {
                 amount
                 currencyCode
+              }
+            }
+            variants(first: 5) {
+              edges {
+                node {
+                  id
+                  title
+                  price
+                }
               }
             }
           }
@@ -52,6 +70,10 @@ async function fetchStoreCatalog(admin) {
             id
             title
             handle
+            image {
+              url
+              altText
+            }
           }
         }
       }
@@ -67,11 +89,39 @@ async function fetchStoreCatalog(admin) {
     }
 
     const shopData = json?.data?.shop || null;
-    const products = (json?.data?.products?.edges || []).map((e) => e.node);
-    const collections = (json?.data?.collections?.edges || []).map((e) => e.node);
-    let policies = [];
+    const rawProducts = (json?.data?.products?.edges || []).map((e) => e.node);
+    const products = rawProducts.map((p) => {
+      const galleryImages = (p.images?.edges || []).map((img) => img.node.url).filter(Boolean);
+      const variants = (p.variants?.edges || []).map((v) => ({
+        id: v.node.id,
+        title: v.node.title,
+        price: v.node.price,
+      }));
+      return {
+        id: p.id,
+        title: p.title,
+        handle: p.handle,
+        description: p.description,
+        vendor: p.vendor,
+        productType: p.productType,
+        imageUrl: p.featuredImage?.url || (galleryImages[0] || ""),
+        galleryImages: galleryImages.length > 0 ? galleryImages : (p.featuredImage?.url ? [p.featuredImage.url] : []),
+        price: `${p.priceRangeV2?.minVariantPrice?.amount || ""} ${p.priceRangeV2?.minVariantPrice?.currencyCode || ""}`.trim(),
+        priceAmount: p.priceRangeV2?.minVariantPrice?.amount || "",
+        currencyCode: p.priceRangeV2?.minVariantPrice?.currencyCode || "USD",
+        variants,
+        primaryVariantId: variants[0]?.id || p.id,
+      };
+    });
 
-    // Optional: Attempt to fetch legal policies if read_legal_policies scope is granted
+    const collections = (json?.data?.collections?.edges || []).map((e) => ({
+      id: e.node.id,
+      title: e.node.title,
+      handle: e.node.handle,
+      imageUrl: e.node.image?.url || "",
+    }));
+
+    let policies = [];
     try {
       const policyQuery = `#graphql
         query GetPolicies {
@@ -96,10 +146,6 @@ async function fetchStoreCatalog(admin) {
     }
 
     console.log(`[StoreCatalog] Successfully ingested ${products.length} products, ${collections.length} collections, and ${policies.length} policies for ${shopData?.name || "shop"}`);
-    if (products.length > 0) {
-      console.log(`[StoreCatalog] Sample Products:`, products.slice(0, 3).map((p) => p.title).join(", "));
-    }
-
     return { shop: shopData, products, collections, policies };
   } catch (err) {
     console.error("[StoreCatalog] Error fetching store context:", err);
@@ -138,7 +184,7 @@ export const loader = async ({ request }) => {
 };
 
 // ============================================================================
-// ACTION (Triggers OpenRouter Page Generation & Prisma DRAFT Creation)
+// ACTION (Triggers OpenRouter Page Generation & Schema Synthesis)
 // ============================================================================
 export const action = async ({ request }) => {
   const { session, admin } = await authenticate.admin(request);
@@ -148,17 +194,23 @@ export const action = async ({ request }) => {
   const pageStyle = formData.get("pageStyle") || "minimal";
   const pageTitle = formData.get("pageTitle") || "Untitled Page";
   const promptText = formData.get("promptText") || "";
-  const niche = formData.get("niche") || "Snowboarding & Outdoor Sports";
+  const niche = formData.get("niche") || "General E-commerce";
   const selectedProductStr = formData.get("selectedProduct");
+  const selectedProductsStr = formData.get("selectedProducts");
+  const selectedCollectionStr = formData.get("selectedCollection");
   const selectedPoliciesStr = formData.get("selectedPolicies");
   const storeContextStr = formData.get("storeContext");
 
   let selectedProduct = null;
+  let selectedProducts = [];
+  let selectedCollection = null;
   let selectedPolicies = [];
   let storeContext = null;
 
   try {
     if (selectedProductStr) selectedProduct = JSON.parse(selectedProductStr);
+    if (selectedProductsStr) selectedProducts = JSON.parse(selectedProductsStr);
+    if (selectedCollectionStr) selectedCollection = JSON.parse(selectedCollectionStr);
     if (selectedPoliciesStr) selectedPolicies = JSON.parse(selectedPoliciesStr);
     if (storeContextStr) storeContext = JSON.parse(storeContextStr);
   } catch (e) {
@@ -180,6 +232,8 @@ export const action = async ({ request }) => {
       niche,
       promptText,
       selectedProduct,
+      selectedProducts,
+      selectedCollection,
       selectedPolicies,
       storeContext,
     });
@@ -214,20 +268,24 @@ export default function PageBuilder() {
   const [promptText, setPromptText] = useState("");
   const [niche, setNiche] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [selectedCollection, setSelectedCollection] = useState(null);
   const [selectedPolicies, setSelectedPolicies] = useState([]);
 
   // Auto-set suggested page title when type or product changes
   useEffect(() => {
     if (pageType === "PRODUCT" && selectedProduct) {
-      setPageTitle(`Product Page – ${selectedProduct.title}`);
+      setPageTitle(`${selectedProduct.title} – Spotlight Page`);
     } else if (pageType === "PRODUCT" && !pageTitle) {
       setPageTitle("Product Spotlight Page");
+    } else if (pageType === "LANDING" && selectedProduct) {
+      setPageTitle(`${selectedProduct.title} – Special Offer`);
     } else if (pageType === "LANDING" && !pageTitle) {
-      setPageTitle("High-Converting Landing Page");
+      setPageTitle("High-Converting Campaign Page");
     } else if (pageType === "HOME" && !pageTitle) {
-      setPageTitle(`${shop?.name || "Store"} – Homepage`);
+      setPageTitle(`${shop?.name || "Store"} – Official Storefront`);
     } else if (pageType === "FAQ" && !pageTitle) {
-      setPageTitle("Frequently Asked Questions");
+      setPageTitle("Help Center & Frequently Asked Questions");
     }
   }, [pageType, selectedProduct]);
 
@@ -241,6 +299,8 @@ export default function PageBuilder() {
     formData.append("promptText", promptText);
     formData.append("niche", niche || "General E-commerce");
     formData.append("selectedProduct", JSON.stringify(selectedProduct));
+    formData.append("selectedProducts", JSON.stringify(selectedProducts));
+    formData.append("selectedCollection", JSON.stringify(selectedCollection));
     formData.append("selectedPolicies", JSON.stringify(selectedPolicies));
     formData.append("storeContext", JSON.stringify({ shop, products, collections, policies }));
 
@@ -279,9 +339,14 @@ export default function PageBuilder() {
             setNiche={setNiche}
             selectedProduct={selectedProduct}
             setSelectedProduct={setSelectedProduct}
+            selectedProducts={selectedProducts}
+            setSelectedProducts={setSelectedProducts}
+            selectedCollection={selectedCollection}
+            setSelectedCollection={setSelectedCollection}
             selectedPolicies={selectedPolicies}
             setSelectedPolicies={setSelectedPolicies}
             products={products}
+            collections={collections}
             policies={policies}
             hasSufficientCredits={hasSufficientCredits}
             shopSettings={shopSettings}

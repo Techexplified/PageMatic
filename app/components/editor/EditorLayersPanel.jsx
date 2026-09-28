@@ -12,6 +12,13 @@ import {
   ShoppingBag,
   Sparkles,
   ShieldCheck,
+  Tag,
+  Clock,
+  BookOpen,
+  Mail,
+  Grid,
+  Zap,
+  MousePointer,
 } from "lucide-react";
 
 export default function EditorLayersPanel({
@@ -26,21 +33,46 @@ export default function EditorLayersPanel({
   const getSectionIcon = (type) => {
     const t = (type || "").toUpperCase();
     switch (t) {
+      case "ANNOUNCEMENT_BAR":
+      case "PROMO_BANNER":
+        return <Tag size={14} color="#F59E0B" />;
+      case "PAGE_HEADER":
       case "HEADER":
         return <Layout size={14} color="#3B82F6" />;
       case "HERO":
         return <Sparkles size={14} color="#8B5CF6" />;
+      case "PRODUCT_SHOWCASE":
       case "PRODUCT_DETAILS":
       case "FEATURED_PRODUCT":
+      case "FEATURED_GRID":
         return <ShoppingBag size={14} color="#10B981" />;
+      case "TRUST_BADGES":
       case "BENEFITS":
+      case "BENEFITS_GRID":
       case "FEATURES":
         return <ShieldCheck size={14} color="#06B6D4" />;
+      case "FEATURE_SPOTLIGHT":
+      case "COMPARISON_TABLE":
+        return <Grid size={14} color="#6366F1" />;
+      case "COLLECTION_LIST":
+        return <Layers size={14} color="#3B82F6" />;
+      case "BRAND_STORY":
+        return <BookOpen size={14} color="#D97706" />;
       case "TESTIMONIALS":
       case "REVIEWS":
         return <Star size={14} color="#F59E0B" />;
       case "FAQ":
+      case "FAQ_GROUP_SHIPPING":
+      case "FAQ_GROUP_RETURNS":
+      case "FAQ_GROUP_GENERAL":
         return <HelpCircle size={14} color="#EC4899" />;
+      case "QUICK_HELP_GRID":
+      case "CONTACT_SUPPORT_CARD":
+      case "NEWSLETTER_SIGNUP":
+        return <Mail size={14} color="#059669" />;
+      case "STICKY_BUY_BAR":
+      case "FINAL_CTA":
+        return <Zap size={14} color="#EF4444" />;
       default:
         return <Layers size={14} color="#64748B" />;
     }

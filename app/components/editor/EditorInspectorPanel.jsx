@@ -5,8 +5,12 @@ import {
   Sliders,
   Plus,
   Trash2,
-  Image as ImageIcon,
+  MousePointer,
+  Link,
+  ShoppingCart,
+  Zap,
 } from "lucide-react";
+import { BUTTON_ACTION_TYPES } from "../../libs/ai-config";
 
 export default function EditorInspectorPanel({
   selectedSection,
@@ -24,7 +28,7 @@ export default function EditorInspectorPanel({
         </div>
         <div style={{ padding: "40px 20px", textAlign: "center", color: "#94A3B8", fontSize: "13px" }}>
           <Sliders size={24} style={{ marginBottom: "8px", opacity: 0.5 }} />
-          <p>Select any section in the layers list or canvas to customize its copy, imagery, and style.</p>
+          <p>Select any section in the layers list or canvas to customize its copy, button actions, and imagery.</p>
         </div>
       </aside>
     );
@@ -36,6 +40,17 @@ export default function EditorInspectorPanel({
     onUpdateSectionData(selectedSection.id, {
       ...data,
       [key]: value,
+    });
+  };
+
+  const handleButtonSchemaChange = (buttonKey, updatedField, value) => {
+    const currentBtn = data[buttonKey] || {};
+    onUpdateSectionData(selectedSection.id, {
+      ...data,
+      [buttonKey]: {
+        ...currentBtn,
+        [updatedField]: value,
+      },
     });
   };
 
@@ -53,7 +68,7 @@ export default function EditorInspectorPanel({
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <Sliders size={15} color="#64748B" />
           <h2 className="pm-panel-title">
-            {selectedSection.type} Inspector
+            {selectedSection.type.replace(/_/g, " ")} Inspector
           </h2>
         </div>
       </div>
@@ -70,7 +85,7 @@ export default function EditorInspectorPanel({
             <input
               type="text"
               className="pm-ai-input"
-              placeholder="e.g. Make copy more urgent, add 20% discount..."
+              placeholder="e.g. Make copy punchier, add 20% discount..."
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
               onKeyDown={(e) => {
@@ -90,8 +105,19 @@ export default function EditorInspectorPanel({
           </div>
         </div>
 
-        {/* Dynamic Fields Based on Section Data */}
-        {/* Badge / Eyebrow */}
+        {/* 1. TEXT FIELDS */}
+        {"text" in data && (
+          <div className="pm-form-field">
+            <label className="pm-form-field-label">Banner Text</label>
+            <input
+              type="text"
+              className="pm-form-input"
+              value={data.text || ""}
+              onChange={(e) => handleFieldChange("text", e.target.value)}
+            />
+          </div>
+        )}
+
         {"badge" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Badge Text</label>
@@ -104,7 +130,6 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {/* Headline */}
         {"headline" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Headline</label>
@@ -117,7 +142,6 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {/* Title / Heading */}
         {"title" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Title</label>
@@ -142,7 +166,19 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {/* Price */}
+        {"groupTitle" in data && (
+          <div className="pm-form-field">
+            <label className="pm-form-field-label">Group Title</label>
+            <input
+              type="text"
+              className="pm-form-input"
+              value={data.groupTitle || ""}
+              onChange={(e) => handleFieldChange("groupTitle", e.target.value)}
+            />
+          </div>
+        )}
+
+        {/* Pricing Fields */}
         {"price" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Price</label>
@@ -155,7 +191,19 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {/* Subheadline / Subtitle / Description */}
+        {"compareAtPrice" in data && (
+          <div className="pm-form-field">
+            <label className="pm-form-field-label">Compare-At Price (Strikethrough)</label>
+            <input
+              type="text"
+              className="pm-form-input"
+              value={data.compareAtPrice || ""}
+              onChange={(e) => handleFieldChange("compareAtPrice", e.target.value)}
+            />
+          </div>
+        )}
+
+        {/* Subheadings / Paragraphs */}
         {"subheadline" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Subheadline</label>
@@ -178,6 +226,17 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
+        {"subheading" in data && (
+          <div className="pm-form-field">
+            <label className="pm-form-field-label">Subheading</label>
+            <textarea
+              className="pm-form-textarea"
+              value={data.subheading || ""}
+              onChange={(e) => handleFieldChange("subheading", e.target.value)}
+            />
+          </div>
+        )}
+
         {"description" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Description</label>
@@ -189,32 +248,65 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {/* Primary CTA */}
-        {"ctaPrimary" in data && (
+        {"storyQuote" in data && (
           <div className="pm-form-field">
-            <label className="pm-form-field-label">Primary Button Text</label>
-            <input
-              type="text"
-              className="pm-form-input"
-              value={data.ctaPrimary || ""}
-              onChange={(e) => handleFieldChange("ctaPrimary", e.target.value)}
+            <label className="pm-form-field-label">Story Quote</label>
+            <textarea
+              className="pm-form-textarea"
+              value={data.storyQuote || ""}
+              onChange={(e) => handleFieldChange("storyQuote", e.target.value)}
             />
           </div>
         )}
 
-        {"ctaText" in data && (
+        {"bodyText" in data && (
           <div className="pm-form-field">
-            <label className="pm-form-field-label">CTA Button Text</label>
-            <input
-              type="text"
-              className="pm-form-input"
-              value={data.ctaText || ""}
-              onChange={(e) => handleFieldChange("ctaText", e.target.value)}
+            <label className="pm-form-field-label">Body Text</label>
+            <textarea
+              className="pm-form-textarea"
+              value={data.bodyText || ""}
+              onChange={(e) => handleFieldChange("bodyText", e.target.value)}
             />
           </div>
         )}
 
-        {/* Image URL */}
+        {"founderName" in data && (
+          <div className="pm-form-field">
+            <label className="pm-form-field-label">Founder / Signature</label>
+            <input
+              type="text"
+              className="pm-form-input"
+              value={data.founderName || ""}
+              onChange={(e) => handleFieldChange("founderName", e.target.value)}
+            />
+          </div>
+        )}
+
+        {"countdownText" in data && (
+          <div className="pm-form-field">
+            <label className="pm-form-field-label">Countdown Text</label>
+            <input
+              type="text"
+              className="pm-form-input"
+              value={data.countdownText || ""}
+              onChange={(e) => handleFieldChange("countdownText", e.target.value)}
+            />
+          </div>
+        )}
+
+        {"code" in data && (
+          <div className="pm-form-field">
+            <label className="pm-form-field-label">Coupon Code</label>
+            <input
+              type="text"
+              className="pm-form-input"
+              value={data.code || ""}
+              onChange={(e) => handleFieldChange("code", e.target.value)}
+            />
+          </div>
+        )}
+
+        {/* 2. IMAGE URL FIELD */}
         {"imageUrl" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Image URL</label>
@@ -234,7 +326,35 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {/* Repeatable Items: FAQs, Features, Testimonials */}
+        {/* 3. BUTTON ACTION SCHEMA INSPECTORS */}
+        {/* Primary Button */}
+        {"buttonPrimary" in data && (
+          <ButtonInspectorBox
+            title="Primary Button Action"
+            buttonSchema={data.buttonPrimary}
+            onChange={(field, val) => handleButtonSchemaChange("buttonPrimary", field, val)}
+          />
+        )}
+
+        {/* Secondary Button */}
+        {"buttonSecondary" in data && (
+          <ButtonInspectorBox
+            title="Secondary Button Action"
+            buttonSchema={data.buttonSecondary}
+            onChange={(field, val) => handleButtonSchemaChange("buttonSecondary", field, val)}
+          />
+        )}
+
+        {/* General Button Action */}
+        {"buttonAction" in data && (
+          <ButtonInspectorBox
+            title="Button Action"
+            buttonSchema={data.buttonAction}
+            onChange={(field, val) => handleButtonSchemaChange("buttonAction", field, val)}
+          />
+        )}
+
+        {/* 4. REPEATABLE ITEMS (FAQ, Benefits, Testimonials, Trust Badges) */}
         {Array.isArray(data.items) && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Items ({data.items.length})</label>
@@ -259,6 +379,7 @@ export default function EditorInspectorPanel({
                   <input
                     type="text"
                     className="pm-form-input"
+                    placeholder="Question"
                     style={{ marginBottom: "6px" }}
                     value={item.question || ""}
                     onChange={(e) => {
@@ -271,6 +392,7 @@ export default function EditorInspectorPanel({
                 {"answer" in item && (
                   <textarea
                     className="pm-form-textarea"
+                    placeholder="Answer"
                     value={item.answer || ""}
                     onChange={(e) => {
                       const newItems = [...data.items];
@@ -280,11 +402,12 @@ export default function EditorInspectorPanel({
                   />
                 )}
 
-                {/* Benefit item */}
+                {/* Title / Description item */}
                 {"title" in item && (
                   <input
                     type="text"
                     className="pm-form-input"
+                    placeholder="Title"
                     style={{ marginBottom: "6px" }}
                     value={item.title || ""}
                     onChange={(e) => {
@@ -297,11 +420,133 @@ export default function EditorInspectorPanel({
                 {"description" in item && (
                   <textarea
                     className="pm-form-textarea"
+                    placeholder="Description"
                     value={item.description || item.desc || ""}
                     onChange={(e) => {
                       const newItems = [...data.items];
                       newItems[idx] = { ...newItems[idx], description: e.target.value };
                       handleFieldChange("items", newItems);
+                    }}
+                  />
+                )}
+
+                {/* Review item */}
+                {"name" in item && (
+                  <input
+                    type="text"
+                    className="pm-form-input"
+                    placeholder="Reviewer Name"
+                    style={{ marginBottom: "6px" }}
+                    value={item.name || ""}
+                    onChange={(e) => {
+                      const newItems = [...data.items];
+                      newItems[idx] = { ...newItems[idx], name: e.target.value };
+                      handleFieldChange("items", newItems);
+                    }}
+                  />
+                )}
+                {"comment" in item && (
+                  <textarea
+                    className="pm-form-textarea"
+                    placeholder="Review Comment"
+                    value={item.comment || ""}
+                    onChange={(e) => {
+                      const newItems = [...data.items];
+                      newItems[idx] = { ...newItems[idx], comment: e.target.value };
+                      handleFieldChange("items", newItems);
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 5. FEATURE SPOTLIGHT ROWS */}
+        {Array.isArray(data.rows) && (
+          <div className="pm-form-field">
+            <label className="pm-form-field-label">Spotlight Rows ({data.rows.length})</label>
+            {data.rows.map((row, idx) => (
+              <div key={idx} className="pm-repeatable-card">
+                <div className="pm-repeatable-header">
+                  <span>Row {idx + 1}</span>
+                  <button
+                    type="button"
+                    style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer" }}
+                    onClick={() => {
+                      const newRows = data.rows.filter((_, i) => i !== idx);
+                      handleFieldChange("rows", newRows);
+                    }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+
+                {"feature" in row && (
+                  <input
+                    type="text"
+                    className="pm-form-input"
+                    placeholder="Feature / Comparison Metric"
+                    style={{ marginBottom: "6px" }}
+                    value={row.feature || ""}
+                    onChange={(e) => {
+                      const newRows = [...data.rows];
+                      newRows[idx] = { ...newRows[idx], feature: e.target.value };
+                      handleFieldChange("rows", newRows);
+                    }}
+                  />
+                )}
+                {"us" in row && (
+                  <input
+                    type="text"
+                    className="pm-form-input"
+                    placeholder="Our Value (e.g. Yes - 100%)"
+                    style={{ marginBottom: "6px" }}
+                    value={row.us || ""}
+                    onChange={(e) => {
+                      const newRows = [...data.rows];
+                      newRows[idx] = { ...newRows[idx], us: e.target.value };
+                      handleFieldChange("rows", newRows);
+                    }}
+                  />
+                )}
+                {"them" in row && (
+                  <input
+                    type="text"
+                    className="pm-form-input"
+                    placeholder="Competitor Value (e.g. No)"
+                    value={row.them || ""}
+                    onChange={(e) => {
+                      const newRows = [...data.rows];
+                      newRows[idx] = { ...newRows[idx], them: e.target.value };
+                      handleFieldChange("rows", newRows);
+                    }}
+                  />
+                )}
+
+                {"title" in row && (
+                  <input
+                    type="text"
+                    className="pm-form-input"
+                    placeholder="Row Title"
+                    style={{ marginBottom: "6px" }}
+                    value={row.title || ""}
+                    onChange={(e) => {
+                      const newRows = [...data.rows];
+                      newRows[idx] = { ...newRows[idx], title: e.target.value };
+                      handleFieldChange("rows", newRows);
+                    }}
+                  />
+                )}
+                {"description" in row && (
+                  <textarea
+                    className="pm-form-textarea"
+                    placeholder="Row Description"
+                    value={row.description || ""}
+                    onChange={(e) => {
+                      const newRows = [...data.rows];
+                      newRows[idx] = { ...newRows[idx], description: e.target.value };
+                      handleFieldChange("rows", newRows);
                     }}
                   />
                 )}
@@ -321,5 +566,96 @@ export default function EditorInspectorPanel({
         }
       `}</style>
     </aside>
+  );
+}
+
+/**
+ * Dedicated Button Action Schema Inspector Component
+ */
+function ButtonInspectorBox({ title, buttonSchema, onChange }) {
+  const schema = buttonSchema || {};
+
+  return (
+    <div style={{
+      background: "#F8FAFC",
+      border: "1px solid #CBD5E1",
+      borderRadius: "10px",
+      padding: "14px",
+      marginBottom: "16px",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px", fontSize: "12.5px", fontWeight: "700", color: "#1E293B" }}>
+        <MousePointer size={14} color="#0052FF" />
+        <span>{title}</span>
+      </div>
+
+      {/* Button Label */}
+      <div style={{ marginBottom: "10px" }}>
+        <label style={{ fontSize: "11px", fontWeight: "600", color: "#64748B", display: "block", marginBottom: "4px" }}>
+          Button Label
+        </label>
+        <input
+          type="text"
+          className="pm-form-input"
+          value={schema.label || ""}
+          placeholder="e.g. Add to Cart"
+          onChange={(e) => onChange("label", e.target.value)}
+        />
+      </div>
+
+      {/* Action Type Selector */}
+      <div style={{ marginBottom: "10px" }}>
+        <label style={{ fontSize: "11px", fontWeight: "600", color: "#64748B", display: "block", marginBottom: "4px" }}>
+          Action Type
+        </label>
+        <select
+          className="pm-form-select"
+          value={schema.actionType || "ADD_TO_CART"}
+          onChange={(e) => onChange("actionType", e.target.value)}
+          style={{ width: "100%" }}
+        >
+          <option value="ADD_TO_CART">ADD_TO_CART (AJAX /cart/add.js)</option>
+          <option value="BUY_NOW">BUY_NOW (Direct Checkout /cart/{`{id}`}:1)</option>
+          <option value="SCROLL_TO">SCROLL_TO (Smooth Scroll to Section)</option>
+          <option value="LINK">LINK (Storefront Page or External URL)</option>
+        </select>
+      </div>
+
+      {/* Target Field */}
+      <div style={{ marginBottom: "10px" }}>
+        <label style={{ fontSize: "11px", fontWeight: "600", color: "#64748B", display: "block", marginBottom: "4px" }}>
+          Target ({schema.actionType === "SCROLL_TO" ? "Section Anchor e.g. #sec_faq" : schema.actionType === "LINK" ? "URL Path" : "Variant GID / ID"})
+        </label>
+        <input
+          type="text"
+          className="pm-form-input"
+          value={schema.target || ""}
+          placeholder={
+            schema.actionType === "SCROLL_TO"
+              ? "#sec_comparison"
+              : schema.actionType === "LINK"
+              ? "/collections/all"
+              : "gid://shopify/ProductVariant/..."
+          }
+          onChange={(e) => onChange("target", e.target.value)}
+        />
+      </div>
+
+      {/* Button Style */}
+      <div>
+        <label style={{ fontSize: "11px", fontWeight: "600", color: "#64748B", display: "block", marginBottom: "4px" }}>
+          Visual Style
+        </label>
+        <select
+          className="pm-form-select"
+          value={schema.style || "primary"}
+          onChange={(e) => onChange("style", e.target.value)}
+          style={{ width: "100%" }}
+        >
+          <option value="primary">Primary (Solid Brand Color)</option>
+          <option value="secondary">Secondary (White with Border)</option>
+          <option value="outline">Outline (Brand Border Transparent)</option>
+        </select>
+      </div>
+    </div>
   );
 }

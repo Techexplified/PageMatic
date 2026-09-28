@@ -1,12 +1,12 @@
 export const AI_MODELS = {
   PAGE_BUILDER: {
-    PRIMARY: "google/gemini-2.0-flash-exp:free",
+    PRIMARY: "meta-llama/llama-3.3-70b-instruct:free",
     FALLBACKS: [
-      "meta-llama/llama-3.3-70b-instruct:free",
-      "google/gemini-2.0-pro-exp-02-05:free",
+      "google/gemini-2.0-flash-exp:free",
       "google/gemini-2.0-flash-lite-preview-02-05:free",
+      "meta-llama/llama-3.1-8b-instruct:free",
       "qwen/qwen-2.5-72b-instruct:free",
-      "deepseek/deepseek-r1:free",
+      "deepseek/deepseek-chat:free",
       "mistralai/mistral-7b-instruct:free",
       "openrouter/free",
     ],

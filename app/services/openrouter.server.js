@@ -56,6 +56,14 @@ export async function generateWithOpenRouter({
       }
 
       const jsonResponse = await response.json();
+      
+      if (jsonResponse.error) {
+        const errMsg = jsonResponse.error.message || JSON.stringify(jsonResponse.error);
+        console.warn(`[OpenRouter] Model ${currentModel} returned error object: ${errMsg}`);
+        lastError = new Error(`OpenRouter (${currentModel}): ${errMsg}`);
+        continue; // Try next fallback model
+      }
+
       const rawContent = jsonResponse.choices?.[0]?.message?.content;
 
       if (!rawContent || !rawContent.trim()) {

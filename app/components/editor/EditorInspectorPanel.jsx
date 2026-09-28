@@ -10,7 +10,7 @@ import {
   ShoppingCart,
   Zap,
 } from "lucide-react";
-import { BUTTON_ACTION_TYPES } from "../../libs/ai-config";
+import { BUTTON_ACTION_TYPES, SECTION_ALLOWED_KEYS } from "../../libs/ai-config";
 
 export default function EditorInspectorPanel({
   selectedSection,
@@ -33,6 +33,10 @@ export default function EditorInspectorPanel({
       </aside>
     );
   }
+
+  const secType = (selectedSection.type || "").toUpperCase();
+  const allowedKeys = SECTION_ALLOWED_KEYS[secType];
+  const isFieldAllowed = (fieldKey) => !allowedKeys || allowedKeys.includes(fieldKey);
 
   const data = selectedSection.data || {};
 
@@ -106,7 +110,7 @@ export default function EditorInspectorPanel({
         </div>
 
         {/* 1. TEXT FIELDS */}
-        {"text" in data && (
+        {isFieldAllowed("text") && "text" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Banner Text</label>
             <input
@@ -118,7 +122,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"badge" in data && (
+        {isFieldAllowed("badge") && "badge" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Badge Text</label>
             <input
@@ -130,7 +134,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"headline" in data && (
+        {isFieldAllowed("headline") && "headline" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Headline</label>
             <input
@@ -142,7 +146,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"title" in data && (
+        {isFieldAllowed("title") && "title" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Title</label>
             <input
@@ -154,7 +158,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"heading" in data && (
+        {isFieldAllowed("heading") && "heading" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Heading</label>
             <input
@@ -166,7 +170,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"groupTitle" in data && (
+        {isFieldAllowed("groupTitle") && "groupTitle" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Group Title</label>
             <input
@@ -179,7 +183,7 @@ export default function EditorInspectorPanel({
         )}
 
         {/* Pricing Fields */}
-        {"price" in data && (
+        {isFieldAllowed("price") && "price" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Price</label>
             <input
@@ -191,7 +195,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"compareAtPrice" in data && (
+        {isFieldAllowed("compareAtPrice") && "compareAtPrice" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Compare-At Price (Strikethrough)</label>
             <input
@@ -204,7 +208,7 @@ export default function EditorInspectorPanel({
         )}
 
         {/* Subheadings / Paragraphs */}
-        {"subheadline" in data && (
+        {isFieldAllowed("subheadline") && "subheadline" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Subheadline</label>
             <textarea
@@ -215,7 +219,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"subtitle" in data && (
+        {isFieldAllowed("subtitle") && "subtitle" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Subtitle</label>
             <textarea
@@ -226,7 +230,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"subheading" in data && (
+        {isFieldAllowed("subheading") && "subheading" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Subheading</label>
             <textarea
@@ -237,7 +241,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"description" in data && (
+        {isFieldAllowed("description") && "description" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Description</label>
             <textarea
@@ -248,7 +252,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"storyQuote" in data && (
+        {isFieldAllowed("storyQuote") && "storyQuote" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Story Quote</label>
             <textarea
@@ -259,7 +263,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"bodyText" in data && (
+        {isFieldAllowed("bodyText") && "bodyText" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Body Text</label>
             <textarea
@@ -270,7 +274,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"founderName" in data && (
+        {isFieldAllowed("founderName") && "founderName" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Founder / Signature</label>
             <input
@@ -282,7 +286,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"countdownText" in data && (
+        {isFieldAllowed("countdownText") && "countdownText" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Countdown Text</label>
             <input
@@ -294,7 +298,7 @@ export default function EditorInspectorPanel({
           </div>
         )}
 
-        {"code" in data && (
+        {isFieldAllowed("code") && "code" in data && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Coupon Code</label>
             <input
@@ -307,7 +311,7 @@ export default function EditorInspectorPanel({
         )}
 
         {/* 2. IMAGE URL FIELD */}
-        {"imageUrl" in data && (
+        {Boolean(isFieldAllowed("imageUrl") && "imageUrl" in data && data.imageUrl !== undefined && typeof data.imageUrl === "string") && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Image URL</label>
             <input
@@ -328,7 +332,7 @@ export default function EditorInspectorPanel({
 
         {/* 3. BUTTON ACTION SCHEMA INSPECTORS */}
         {/* Primary Button */}
-        {"buttonPrimary" in data && (
+        {Boolean(isFieldAllowed("buttonPrimary") && data.buttonPrimary && typeof data.buttonPrimary === "object") && (
           <ButtonInspectorBox
             title="Primary Button Action"
             buttonSchema={data.buttonPrimary}
@@ -337,7 +341,7 @@ export default function EditorInspectorPanel({
         )}
 
         {/* Secondary Button */}
-        {"buttonSecondary" in data && (
+        {Boolean(isFieldAllowed("buttonSecondary") && data.buttonSecondary && typeof data.buttonSecondary === "object") && (
           <ButtonInspectorBox
             title="Secondary Button Action"
             buttonSchema={data.buttonSecondary}
@@ -346,7 +350,7 @@ export default function EditorInspectorPanel({
         )}
 
         {/* General Button Action */}
-        {"buttonAction" in data && (
+        {Boolean(isFieldAllowed("buttonAction") && data.buttonAction && typeof data.buttonAction === "object") && (
           <ButtonInspectorBox
             title="Button Action"
             buttonSchema={data.buttonAction}
@@ -355,7 +359,7 @@ export default function EditorInspectorPanel({
         )}
 
         {/* 4. REPEATABLE ITEMS (FAQ, Benefits, Testimonials, Trust Badges) */}
-        {Array.isArray(data.items) && (
+        {isFieldAllowed("items") && Array.isArray(data.items) && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Items ({data.items.length})</label>
             {data.items.map((item, idx) => (

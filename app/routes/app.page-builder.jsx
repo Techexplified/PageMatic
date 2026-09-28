@@ -351,7 +351,8 @@ export default function PageBuilder() {
     }
   }, [pageType, selectedProduct]);
 
-  const hasSufficientCredits = (shopSettings?.pageCredits || 0) >= 5;
+  // Credit gating relaxed during testing/development phase
+  const hasSufficientCredits = true;
 
   const handleGenerate = () => {
     const formData = new FormData();

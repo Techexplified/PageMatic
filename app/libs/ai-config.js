@@ -14,9 +14,14 @@ export const AI_MODELS = {
     TEMPERATURE: 0.7,
   },
   MICRO_EDITS: {
-    PRIMARY: "llama-3.1-8b-instant", // via Groq
-    MAX_TOKENS: 1000,
-    TEMPERATURE: 0.5,
+    PRIMARY: "openrouter/free",
+    FALLBACKS: [
+      "google/gemma-4-26b-a4b-it:free",
+      "nvidia/nemotron-3-super-120b-a12b:free",
+      "nvidia/nemotron-3.5-lightning:free",
+    ],
+    MAX_TOKENS: 2000,
+    TEMPERATURE: 0.6,
   },
 };
 
@@ -134,3 +139,51 @@ export const STYLE_THEME_TOKENS = {
     "--pm-font-heading": "Inter, sans-serif",
   },
 };
+
+// Whitelist of valid schema fields per section type to prevent schema pollution
+export const SECTION_ALLOWED_KEYS = {
+  ANNOUNCEMENT_BAR: ["text", "badge"],
+  PROMO_BANNER: ["heading", "countdownText", "code"],
+  PAGE_HEADER: ["title", "subtitle", "breadcrumbs"],
+  HEADER: ["brandName", "navLinks", "ctaText"],
+  HERO: [
+    "headline",
+    "subheadline",
+    "badge",
+    "price",
+    "compareAtPrice",
+    "imageUrl",
+    "galleryImages",
+    "trustBadges",
+    "variantSelector",
+    "buttonPrimary",
+    "buttonSecondary",
+    "ctaPrimary",
+  ],
+  SOCIAL_PROOF_STRIP: ["heading", "logos"],
+  TRUST_BADGES: ["items"],
+  BENEFITS_GRID: ["heading", "subtitle", "items"],
+  BENEFITS: ["heading", "subtitle", "items"],
+  FEATURES: ["heading", "subtitle", "items"],
+  FEATURE_SPOTLIGHT: ["heading", "subtitle", "rows"],
+  PRODUCT_SHOWCASE: ["title", "price", "description", "features", "imageUrl", "buttonPrimary"],
+  PRODUCT_DETAILS: ["title", "price", "description", "features", "imageUrl", "buttonPrimary"],
+  FEATURED_PRODUCT: ["title", "price", "description", "features", "imageUrl", "buttonPrimary"],
+  COMPARISON_TABLE: ["heading", "ourBrand", "competitorName", "rows"],
+  COLLECTION_LIST: ["heading", "items"],
+  FEATURED_GRID: ["heading", "subtitle", "products"],
+  BRAND_STORY: ["heading", "storyQuote", "founderName", "bodyText", "imageUrl"],
+  TESTIMONIALS: ["heading", "subtitle", "items"],
+  REVIEWS: ["heading", "subtitle", "items"],
+  FAQ: ["heading", "items"],
+  FAQ_GROUP_SHIPPING: ["heading", "groupTitle", "items"],
+  FAQ_GROUP_RETURNS: ["heading", "groupTitle", "items"],
+  FAQ_GROUP_GENERAL: ["heading", "groupTitle", "items"],
+  QUICK_HELP_GRID: ["cards"],
+  CONTACT_SUPPORT_CARD: ["heading", "subtitle", "buttonText"],
+  STICKY_BUY_BAR: ["title", "price", "imageUrl", "buttonAction"],
+  FINAL_CTA: ["heading", "subheading", "buttonPrimary"],
+  NEWSLETTER_SIGNUP: ["heading", "subheading", "buttonText"],
+  FOOTER: ["brandName", "copyrightText", "links"],
+};
+

@@ -25,16 +25,44 @@ export function buildStrategicPlanPrompt({
   const storeBrandName = shopInfo.name || "Store";
   const currentYear = new Date().getFullYear();
 
-  // Primary product resolution
-  let targetProduct = selectedProduct;
-  if (!targetProduct && storeProducts.length > 0) {
-    targetProduct = storeProducts[0];
+  // 1. Identify collection products if a collection is selected
+  let collectionProducts = [];
+  if (selectedCollection) {
+    if (Array.isArray(selectedCollection.products) && selectedCollection.products.length > 0) {
+      collectionProducts = selectedCollection.products;
+    } else {
+      const match = storeCollections.find(
+        (c) => c.id === selectedCollection.id || c.handle === selectedCollection.handle || c.title?.toLowerCase() === selectedCollection.title?.toLowerCase()
+      );
+      if (match && Array.isArray(match.products) && match.products.length > 0) {
+        collectionProducts = match.products;
+      }
+    }
   }
 
-  // Active products for grid (HOME)
-  let activeGridProducts = (selectedProducts && selectedProducts.length > 0)
-    ? selectedProducts
-    : storeProducts.slice(0, 4);
+  // 2. Filter non-gift-card physical products from storeProducts
+  const nonGiftCardProducts = storeProducts.filter(
+    (p) => !p.title?.toLowerCase().includes("gift card")
+  );
+  const candidateProducts = nonGiftCardProducts.length > 0 ? nonGiftCardProducts : storeProducts;
+
+  // 3. Resolve targetProduct (prioritize selected product, then collection product, then candidate)
+  let targetProduct = selectedProduct;
+  if (!targetProduct && collectionProducts.length > 0) {
+    targetProduct = collectionProducts[0];
+  } else if (!targetProduct && candidateProducts.length > 0) {
+    targetProduct = candidateProducts[0];
+  }
+
+  // 4. Resolve active products for grid (HOME)
+  let activeGridProducts = [];
+  if (selectedProducts && selectedProducts.length > 0) {
+    activeGridProducts = selectedProducts;
+  } else if (collectionProducts.length > 0) {
+    activeGridProducts = collectionProducts;
+  } else if (candidateProducts.length > 0) {
+    activeGridProducts = candidateProducts.slice(0, 4);
+  }
 
   // System Prompt for Strategic Copywriting
   const systemPrompt = `You are an elite E-commerce Conversion Rate Optimization (CRO) strategist and master brand copywriter.
@@ -44,8 +72,9 @@ Your task is to generate a comprehensive, highly persuasive marketing copy brief
 1. **GROUND TRUTH ONLY:** Ground all headlines, copy, specs, and benefits strictly in the merchant's real store catalog products and policies provided below.
 2. **NO FAKE PRODUCTS:** Do NOT invent unrelated products (e.g. if the store sells snowboards, write about snowboards, flex rating, camber, edges, and mountain riding).
 3. **BRAND IDENTITY:** The brand name is "${storeBrandName}". NEVER use the word "PageMatic" or "Pagematic" in any copy.
-4. **CURRENT YEAR:** Use ${currentYear} in copyright notices.
-5. **OUTPUT FORMAT:** Return ONLY a valid JSON object matching the requested template schema. Do not include markdown backticks or conversational text.`;
+4. **NO INPUT FIELDS OR FORMS:** NEVER generate email capture boxes, text inputs, or forms. All conversion actions MUST be actionable buttons (links, cart actions, or scroll anchors).
+5. **CURRENT YEAR:** Use ${currentYear} in copyright notices.
+6. **OUTPUT FORMAT:** Return ONLY a valid JSON object matching the requested template schema. Do not include markdown backticks or conversational text.`;
 
   // Build Comprehensive Real Store Context
   let storeDump = `=== REAL STORE CATALOG & INGESTED CONTEXT ===
@@ -73,6 +102,12 @@ Niche: ${niche || "General E-commerce"}`;
       .map((p) => `• "${p.title}" | Price: ${p.price || "$99"} | Description: ${p.description ? p.description.slice(0, 140) : "Premium product"}`)
       .join("\n");
     storeDump += `\n\nSTORE CATALOG PRODUCTS:\n${prodsList}`;
+  }
+
+  if (selectedCollection && selectedCollection.title) {
+    storeDump += `\n\nFEATURED HOMEPAGE COLLECTION:
+- Title: "${selectedCollection.title}"
+- Handle: "${selectedCollection.handle || "all"}"`;
   }
 
   if (storeCollections && storeCollections.length > 0) {
@@ -246,10 +281,10 @@ Niche: ${niche || "General E-commerce"}`;
       { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" }
     ]
   },
-  "newsletter": {
-    "heading": "Join The ${storeBrandName} Club",
-    "subtitle": "Get 15% off your first order + early access to limited edition drops.",
-    "buttonText": "Unlock 15% Off"
+  "finalCta": {
+    "heading": string (e.g. "Ready to Upgrade Your Experience?"),
+    "subheading": string (e.g. "Explore our latest arrivals and enjoy free worldwide express shipping on orders over $50."),
+    "ctaText": string (e.g. "Explore All Collections")
   }
 }`;
   } else if (pageType === "FAQ") {
@@ -327,6 +362,7 @@ export function assemblePageFromPlan({
   pageTitle = "New Page",
   targetProduct = null,
   activeGridProducts = [],
+  selectedCollection = null,
   storeProducts = [],
   storeCollections = [],
   shopInfo = {},
@@ -340,14 +376,41 @@ export function assemblePageFromPlan({
   const contactEmail = shopInfo.email || `support@${shopInfo.myshopifyDomain || "store.com"}`;
   const contactUrl = "/pages/contact";
 
-  // Product helper data
-  const primaryVariantId = targetProduct?.primaryVariantId || targetProduct?.variants?.[0]?.id || targetProduct?.id || "default_variant";
-  const primaryImageUrl = targetProduct?.imageUrl || targetProduct?.galleryImages?.[0] || storeProducts[0]?.imageUrl || "";
-  const galleryImages = (targetProduct?.galleryImages && targetProduct.galleryImages.length > 0)
-    ? targetProduct.galleryImages
+  // Non-gift-card physical merchandise candidates
+  const nonGiftCardProducts = storeProducts.filter(
+    (p) => !p.title?.toLowerCase().includes("gift card")
+  );
+  const candidateProducts = nonGiftCardProducts.length > 0 ? nonGiftCardProducts : storeProducts;
+
+  // Resolve collection products if collection was selected
+  let collectionProducts = [];
+  if (selectedCollection) {
+    if (Array.isArray(selectedCollection.products) && selectedCollection.products.length > 0) {
+      collectionProducts = selectedCollection.products;
+    } else {
+      const match = storeCollections.find(
+        (c) => c.id === selectedCollection.id || c.handle === selectedCollection.handle || c.title?.toLowerCase() === selectedCollection.title?.toLowerCase()
+      );
+      if (match && Array.isArray(match.products) && match.products.length > 0) {
+        collectionProducts = match.products;
+      }
+    }
+  }
+
+  // Resolve effective product for hero / anchor
+  const effectiveProduct =
+    targetProduct ||
+    (collectionProducts.length > 0 ? collectionProducts[0] : null) ||
+    candidateProducts[0] ||
+    storeProducts[0];
+
+  const primaryVariantId = effectiveProduct?.primaryVariantId || effectiveProduct?.variants?.[0]?.id || effectiveProduct?.id || "default_variant";
+  const primaryImageUrl = effectiveProduct?.imageUrl || effectiveProduct?.galleryImages?.[0] || candidateProducts[0]?.imageUrl || "";
+  const galleryImages = (effectiveProduct?.galleryImages && effectiveProduct.galleryImages.length > 0)
+    ? effectiveProduct.galleryImages
     : (primaryImageUrl ? [primaryImageUrl] : []);
-  const productPrice = targetProduct?.price || "$149.00";
-  const productTitle = targetProduct?.title || "Signature Performance Gear";
+  const productPrice = effectiveProduct?.price || "$149.00";
+  const productTitle = effectiveProduct?.title || "Signature Performance Gear";
 
   // ============================================================================
   // TEMPLATE 1: PRODUCT PAGE (8 Deterministic Sections)
@@ -674,18 +737,44 @@ export function assemblePageFromPlan({
     });
 
     // 2. COLLECTION LIST (3-4 Category Cards)
-    const categoryList = (storeCollections && storeCollections.length > 0)
-      ? storeCollections.slice(0, 4).map((c) => ({
-          title: c.title,
-          handle: c.handle || "all",
-          imageUrl: c.imageUrl || primaryImageUrl,
-          link: `/collections/${c.handle || "all"}`,
-        }))
-      : (plan.collectionList?.categories || [
-          { title: "Best Sellers", description: "Our most wanted performance gear", link: "/collections/all" },
-          { title: "New Arrivals", description: "Fresh releases for the season", link: "/collections/all" },
-          { title: "Pro Equipment", description: "Tuning and accessories", link: "/collections/all" },
-        ]);
+    let categoryList = [];
+    if (selectedCollection && selectedCollection.title) {
+      const colCover =
+        selectedCollection.imageUrl ||
+        selectedCollection.products?.[0]?.imageUrl ||
+        collectionProducts[0]?.imageUrl ||
+        primaryImageUrl;
+
+      categoryList.push({
+        title: selectedCollection.title,
+        handle: selectedCollection.handle || "all",
+        imageUrl: colCover,
+        link: `/collections/${selectedCollection.handle || "all"}`,
+      });
+    }
+
+    if (storeCollections && storeCollections.length > 0) {
+      for (const c of storeCollections) {
+        if (!categoryList.some((item) => item.title.toLowerCase() === c.title.toLowerCase())) {
+          const colCover = c.imageUrl || c.products?.[0]?.imageUrl || primaryImageUrl;
+          categoryList.push({
+            title: c.title,
+            handle: c.handle || "all",
+            imageUrl: colCover,
+            link: `/collections/${c.handle || "all"}`,
+          });
+        }
+        if (categoryList.length >= 4) break;
+      }
+    }
+
+    if (categoryList.length === 0) {
+      categoryList = plan.collectionList?.categories || [
+        { title: "Best Sellers", description: "Our most wanted performance gear", link: "/collections/all" },
+        { title: "New Arrivals", description: "Fresh releases for the season", link: "/collections/all" },
+        { title: "Pro Equipment", description: "Tuning and accessories", link: "/collections/all" },
+      ];
+    }
 
     sections.push({
       id: `sec_collection_list_${now}_1`,
@@ -697,8 +786,17 @@ export function assemblePageFromPlan({
     });
 
     // 3. FEATURED GRID (4-Product Grid with Real Ingested Catalog Items)
-    const gridItems = (activeGridProducts && activeGridProducts.length > 0)
-      ? activeGridProducts.slice(0, 4).map((p) => ({
+    let gridSource = activeGridProducts;
+    if (!gridSource || gridSource.length === 0) {
+      if (collectionProducts.length > 0) {
+        gridSource = collectionProducts;
+      } else {
+        gridSource = candidateProducts.slice(0, 4);
+      }
+    }
+
+    const gridItems = (gridSource && gridSource.length > 0)
+      ? gridSource.slice(0, 4).map((p) => ({
           id: p.id,
           title: p.title,
           price: p.price || "$99.00",
@@ -760,14 +858,19 @@ export function assemblePageFromPlan({
       },
     });
 
-    // 6. NEWSLETTER SIGNUP
+    // 6. FINAL CTA BANNER (Closing Conversion Banner with Button Action)
     sections.push({
-      id: `sec_newsletter_${now}_5`,
-      type: "NEWSLETTER_SIGNUP",
+      id: `sec_final_cta_${now}_5`,
+      type: "FINAL_CTA",
       data: {
-        heading: plan.newsletter?.heading || `Join The ${brandName} Community`,
-        subtitle: plan.newsletter?.subtitle || "Get 15% off your first order + early access to limited edition drops.",
-        buttonText: plan.newsletter?.buttonText || "Subscribe & Save 15%",
+        heading: plan.finalCta?.heading || `Ready to Experience ${brandName}?`,
+        subheading: plan.finalCta?.subheading || "Explore our latest collection and enjoy free worldwide shipping on orders over $50.",
+        buttonPrimary: {
+          label: plan.finalCta?.ctaText || "Explore All Collections →",
+          actionType: BUTTON_ACTION_TYPES.LINK,
+          target: selectedCollection ? `/collections/${selectedCollection.handle || "all"}` : "/collections/all",
+          style: "primary",
+        },
       },
     });
   }

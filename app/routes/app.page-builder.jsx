@@ -74,6 +74,42 @@ async function fetchStoreCatalog(admin) {
               url
               altText
             }
+            products(first: 8) {
+              edges {
+                node {
+                  id
+                  title
+                  handle
+                  description
+                  featuredImage {
+                    url
+                    altText
+                  }
+                  images(first: 4) {
+                    edges {
+                      node {
+                        url
+                      }
+                    }
+                  }
+                  priceRangeV2 {
+                    minVariantPrice {
+                      amount
+                      currencyCode
+                    }
+                  }
+                  variants(first: 5) {
+                    edges {
+                      node {
+                        id
+                        title
+                        price
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -114,12 +150,38 @@ async function fetchStoreCatalog(admin) {
       };
     });
 
-    const collections = (json?.data?.collections?.edges || []).map((e) => ({
-      id: e.node.id,
-      title: e.node.title,
-      handle: e.node.handle,
-      imageUrl: e.node.image?.url || "",
-    }));
+    const collections = (json?.data?.collections?.edges || []).map((e) => {
+      const colProducts = (e.node.products?.edges || []).map((pe) => {
+        const p = pe.node;
+        const galleryImages = (p.images?.edges || []).map((img) => img.node.url).filter(Boolean);
+        const variants = (p.variants?.edges || []).map((v) => ({
+          id: v.node.id,
+          title: v.node.title,
+          price: v.node.price,
+        }));
+        return {
+          id: p.id,
+          title: p.title,
+          handle: p.handle,
+          description: p.description,
+          imageUrl: p.featuredImage?.url || (galleryImages[0] || ""),
+          galleryImages: galleryImages.length > 0 ? galleryImages : (p.featuredImage?.url ? [p.featuredImage.url] : []),
+          price: `${p.priceRangeV2?.minVariantPrice?.amount || ""} ${p.priceRangeV2?.minVariantPrice?.currencyCode || ""}`.trim(),
+          variants,
+          primaryVariantId: variants[0]?.id || p.id,
+        };
+      });
+
+      const coverImage = e.node.image?.url || colProducts[0]?.imageUrl || "";
+
+      return {
+        id: e.node.id,
+        title: e.node.title,
+        handle: e.node.handle,
+        imageUrl: coverImage,
+        products: colProducts,
+      };
+    });
 
     let policies = [];
     try {

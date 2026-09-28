@@ -66,14 +66,14 @@ export const PAGE_TEMPLATES = {
   HOME: {
     id: "HOME",
     name: "Home Page",
-    description: "Brand orientation, category routing, and catalog showcase with editorial brand story and newsletter signup.",
+    description: "Brand orientation, category routing, and catalog showcase with editorial brand story and high-converting closing CTA.",
     sectionSequence: [
       "HERO",
       "COLLECTION_LIST",
       "FEATURED_GRID",
       "BRAND_STORY",
       "TESTIMONIALS",
-      "NEWSLETTER_SIGNUP",
+      "FINAL_CTA",
     ],
   },
   FAQ: {

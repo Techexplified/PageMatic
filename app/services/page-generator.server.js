@@ -72,6 +72,7 @@ export async function generateAndPersistPage({
     pageTitle,
     targetProduct,
     activeGridProducts,
+    selectedCollection,
     storeProducts: storeContext?.products || [],
     storeCollections: storeContext?.collections || [],
     shopInfo: storeContext?.shop || {},

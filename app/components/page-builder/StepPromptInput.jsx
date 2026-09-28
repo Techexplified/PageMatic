@@ -137,12 +137,6 @@ export default function StepPromptInput({
         console.warn("Shopify resourcePicker single-select warning:", err);
       }
     }
-
-    // Fallback if resourcePicker is unavailable
-    if (products && products.length > 0) {
-      const p = products[0];
-      setSelectedProduct(p);
-    }
   };
 
   // 2. Multi-Product Picker (HOME)
@@ -177,16 +171,12 @@ export default function StepPromptInput({
           });
 
           if (setSelectedProducts) setSelectedProducts(formatted);
+          if (setSelectedCollection) setSelectedCollection(null); // Clear conflicting collection
           return;
         }
       } catch (err) {
         console.warn("Shopify resourcePicker multi-select warning:", err);
       }
-    }
-
-    // Fallback: Pick top 4 products from catalog
-    if (products && products.length > 0 && setSelectedProducts) {
-      setSelectedProducts(products.slice(0, 4));
     }
   };
 
@@ -202,24 +192,42 @@ export default function StepPromptInput({
 
         if (selected && selected.length > 0) {
           const col = selected[0];
+          const matchingCol = (collections || []).find(
+            (c) => c.id === col.id || c.handle === col.handle || c.title?.toLowerCase() === col.title?.toLowerCase()
+          );
+          const colProducts = matchingCol?.products || [];
+          const coverImage = col.image?.originalSrc || col.image?.src || matchingCol?.imageUrl || colProducts[0]?.imageUrl || "";
+
           if (setSelectedCollection) {
             setSelectedCollection({
               id: col.id,
               title: col.title,
               handle: col.handle || "",
-              imageUrl: col.image?.originalSrc || col.image?.src || "",
+              imageUrl: coverImage,
+              products: colProducts,
             });
           }
+          if (setSelectedProducts) setSelectedProducts([]); // Clear conflicting products
           return;
         }
       } catch (err) {
         console.warn("Shopify collection picker warning:", err);
       }
     }
+  };
 
-    if (collections && collections.length > 0 && setSelectedCollection) {
-      setSelectedCollection(collections[0]);
-    }
+  // Remove Handlers
+  const handleRemoveProduct = (productId) => {
+    if (!setSelectedProducts) return;
+    setSelectedProducts((prev) => prev.filter((p) => p.id !== productId));
+  };
+
+  const handleRemoveCollection = () => {
+    if (setSelectedCollection) setSelectedCollection(null);
+  };
+
+  const handleRemoveSingleProduct = () => {
+    if (setSelectedProduct) setSelectedProduct(null);
   };
 
   // Toggle Policy Selection for FAQ
@@ -268,13 +276,34 @@ export default function StepPromptInput({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="pm-btn-ingest"
-            onClick={handleOpenSingleProductPicker}
-          >
-            {selectedProduct ? "Change Product" : "Select Product ↗"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              className="pm-btn-ingest"
+              onClick={handleOpenSingleProductPicker}
+            >
+              {selectedProduct ? "Change Product" : "Select Product ↗"}
+            </button>
+            {selectedProduct && (
+              <button
+                type="button"
+                onClick={handleRemoveSingleProduct}
+                style={{
+                  background: "none",
+                  border: "1px solid #CBD5E1",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#DC2626",
+                  cursor: "pointer",
+                }}
+                title="Remove selected product"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -296,19 +325,40 @@ export default function StepPromptInput({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="pm-btn-ingest"
-            onClick={handleOpenSingleProductPicker}
-          >
-            {selectedProduct ? "Change Anchor" : "Select Product ↗"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              className="pm-btn-ingest"
+              onClick={handleOpenSingleProductPicker}
+            >
+              {selectedProduct ? "Change Anchor" : "Select Product ↗"}
+            </button>
+            {selectedProduct && (
+              <button
+                type="button"
+                onClick={handleRemoveSingleProduct}
+                style={{
+                  background: "none",
+                  border: "1px solid #CBD5E1",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#DC2626",
+                  cursor: "pointer",
+                }}
+                title="Remove anchor product"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {/* 3. DYNAMIC INGESTION AREA: HOME PAGE (Multi-Product 4-8 Items or Collection) */}
       {pageType === "HOME" && (
-        <div className="pm-ingestion-card" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+        <div className="pm-ingestion-card" style={{ flexDirection: "column", alignItems: "flex-start", gap: "14px" }}>
           <div className="pm-ingestion-info" style={{ width: "100%", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
               <div className="pm-ingestion-icon-wrapper" style={{ background: "#ECFDF5", color: "#059669" }}>
@@ -316,10 +366,10 @@ export default function StepPromptInput({
               </div>
               <div>
                 <h4 className="pm-ingestion-text-title">
-                  {selectedProducts && selectedProducts.length > 0
+                  {selectedCollection
+                    ? `Featured Collection: ${selectedCollection.title}`
+                    : selectedProducts && selectedProducts.length > 0
                     ? `${selectedProducts.length} Featured Catalog Products Selected`
-                    : selectedCollection
-                    ? `Collection: ${selectedCollection.title}`
                     : "Select Catalog Products or Collection for Homepage"}
                 </h4>
                 <p className="pm-ingestion-text-sub">
@@ -328,18 +378,19 @@ export default function StepPromptInput({
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
               <button
                 type="button"
                 className="pm-btn-ingest"
                 onClick={handleOpenMultiProductPicker}
+                style={selectedProducts && selectedProducts.length > 0 ? { background: "#0052FF", color: "#FFFFFF", borderColor: "#0052FF" } : {}}
               >
                 {selectedProducts && selectedProducts.length > 0 ? "Change Products (4-8)" : "Pick Products ↗"}
               </button>
               <button
                 type="button"
                 className="pm-btn-ingest"
-                style={{ background: "#F1F5F9", color: "#334155", borderColor: "#CBD5E1" }}
+                style={selectedCollection ? { background: "#0052FF", color: "#FFFFFF", borderColor: "#0052FF" } : { background: "#F1F5F9", color: "#334155", borderColor: "#CBD5E1" }}
                 onClick={handleOpenCollectionPicker}
               >
                 {selectedCollection ? "Change Collection" : "Pick Collection"}
@@ -347,29 +398,175 @@ export default function StepPromptInput({
             </div>
           </div>
 
-          {/* Render Chips for selected products */}
-          {selectedProducts && selectedProducts.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "12px", width: "100%" }}>
-              {selectedProducts.map((p, idx) => (
-                <span
-                  key={p.id || idx}
+          {/* 1. If Collection is Selected, Show Collection Preview Card */}
+          {selectedCollection && (
+            <div
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 16px",
+                background: "#F8FAFC",
+                border: "1.5px solid #E2E8F0",
+                borderRadius: "10px",
+                gap: "14px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                {selectedCollection.imageUrl ? (
+                  <img
+                    src={selectedCollection.imageUrl}
+                    alt={selectedCollection.title}
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      objectFit: "cover",
+                      borderRadius: "8px",
+                      border: "1px solid #E2E8F0",
+                      background: "#FFFFFF",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "8px",
+                      background: "#E0F2FE",
+                      color: "#0284C7",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "1px solid #BAE6FD",
+                    }}
+                  >
+                    <Layers size={20} />
+                  </div>
+                )}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "14px", fontWeight: "700", color: "#0F172A" }}>
+                      {selectedCollection.title}
+                    </span>
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        background: "#ECFDF5",
+                        color: "#059669",
+                        border: "1px solid #A7F3D0",
+                      }}
+                    >
+                      Active Homepage Collection
+                    </span>
+                  </div>
+                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748B" }}>
+                    Path: <code style={{ background: "#EEF2F6", padding: "1px 5px", borderRadius: "4px" }}>/collections/{selectedCollection.handle || "all"}</code>
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={handleRemoveCollection}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "6px",
-                    background: "#F8FAFC",
-                    border: "1px solid #E2E8F0",
+                    gap: "4px",
+                    padding: "6px 10px",
+                    background: "#FFFFFF",
+                    border: "1px solid #CBD5E1",
                     borderRadius: "6px",
-                    padding: "4px 10px",
                     fontSize: "12px",
-                    color: "#334155",
-                    fontWeight: "500",
+                    fontWeight: "600",
+                    color: "#DC2626",
+                    cursor: "pointer",
+                  }}
+                  title="Remove collection"
+                >
+                  ✕ Remove
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 2. If Products are Selected, Render Individual Product Chips */}
+          {selectedProducts && selectedProducts.length > 0 && (
+            <div style={{ width: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span style={{ fontSize: "12px", fontWeight: "600", color: "#64748B" }}>
+                  {selectedProducts.length} Products Selected for Grid:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedProducts && setSelectedProducts([])}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#EF4444",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    padding: 0,
                   }}
                 >
-                  <Check size={12} color="#16A34A" />
-                  {p.title} ({p.price || "USD"})
-                </span>
-              ))}
+                  Clear all
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", width: "100%" }}>
+                {selectedProducts.map((p, idx) => (
+                  <span
+                    key={p.id || idx}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      background: "#FFFFFF",
+                      border: "1.5px solid #E2E8F0",
+                      borderRadius: "8px",
+                      padding: "4px 8px 4px 6px",
+                      fontSize: "12px",
+                      color: "#1E293B",
+                      fontWeight: "600",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                    }}
+                  >
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt={p.title}
+                        style={{ width: "20px", height: "20px", borderRadius: "4px", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <Check size={12} color="#16A34A" />
+                    )}
+                    <span>{p.title}</span>
+                    <span style={{ color: "#64748B", fontWeight: "500", fontSize: "11.5px" }}>({p.price || "USD"})</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveProduct(p.id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#94A3B8",
+                        cursor: "pointer",
+                        padding: "0 2px",
+                        fontSize: "13px",
+                        lineHeight: 1,
+                      }}
+                      title="Remove product"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>

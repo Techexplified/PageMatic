@@ -79,7 +79,7 @@ export async function generateAndPersistPage({
   });
 
   // 4. Generate unique slug handle for this page within the shop
-  const finalTitle = sanitizedContent.title || pageTitle || "Untitled Page";
+  const finalTitle = pageTitle || sanitizedContent.title || "Untitled Page";
   const handle = await generateUniqueHandle(settings.id, finalTitle);
 
   // 5. In-Memory Page Construction (Draft)
@@ -91,7 +91,7 @@ export async function generateAndPersistPage({
     pageType: pageType,
     stylePreset: stylePreset,
     targetProductId: targetProduct?.id || selectedProduct?.id || null,
-    seoTitle: sanitizedContent.title,
+    seoTitle: sanitizedContent.seoTitle || sanitizedContent.title || finalTitle,
     seoDescription: sanitizedContent.seoDescription || null,
     contentJson: sanitizedContent,
     status: "DRAFT",

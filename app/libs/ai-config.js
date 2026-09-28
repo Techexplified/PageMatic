@@ -91,7 +91,7 @@ export const PAGE_TEMPLATES = {
   },
 };
 
-// Style Preset Theme Token Defaults
+// Style Preset Theme Token Defaults (Used as fallbacks and baseline styling)
 export const STYLE_THEME_TOKENS = {
   minimal: {
     "--pm-primary": "#0052FF",
@@ -104,13 +104,13 @@ export const STYLE_THEME_TOKENS = {
     "--pm-font-heading": "Inter, sans-serif",
   },
   bold: {
-    "--pm-primary": "#E11D48",
-    "--pm-accent": "#BE123C",
-    "--pm-bg": "#09090B",
-    "--pm-surface": "#18181B",
+    "--pm-primary": "#2563EB",
+    "--pm-accent": "#1D4ED8",
+    "--pm-bg": "#0F172A",
+    "--pm-surface": "#1E293B",
     "--pm-text-heading": "#FAFAFA",
-    "--pm-text-body": "#A1A1AA",
-    "--pm-radius": "16px",
+    "--pm-text-body": "#94A3B8",
+    "--pm-radius": "12px",
     "--pm-font-heading": "Inter, sans-serif",
   },
   editorial: {
@@ -122,5 +122,15 @@ export const STYLE_THEME_TOKENS = {
     "--pm-text-body": "#4B5563",
     "--pm-radius": "4px",
     "--pm-font-heading": "Georgia, serif",
+  },
+  professional: {
+    "--pm-primary": "#1E293B",
+    "--pm-accent": "#334155",
+    "--pm-bg": "#FFFFFF",
+    "--pm-surface": "#F1F5F9",
+    "--pm-text-heading": "#0F172A",
+    "--pm-text-body": "#475569",
+    "--pm-radius": "8px",
+    "--pm-font-heading": "Inter, sans-serif",
   },
 };

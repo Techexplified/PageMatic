@@ -64,17 +64,32 @@ export function buildStrategicPlanPrompt({
     activeGridProducts = candidateProducts.slice(0, 4);
   }
 
+  // 1. Format Merchant Custom Directives with Top-Level Priority
+  const hasCustomPrompt = Boolean(promptText && promptText.trim().length > 0);
+  const merchantDirectives = hasCustomPrompt
+    ? `🎯 PRIMARY DIRECTIVE & MERCHANT INSTRUCTIONS:
+================================================================================
+"${promptText.trim()}"
+================================================================================
+CRITICAL: The merchant's custom instructions, angles, tone, promotional discounts, and focus areas above MUST be deeply infused into the page's headlines, subheadlines, benefit bullet points, and FAQ items.`
+    : `🎯 PRIMARY DIRECTIVE:
+Craft a high-converting, authentic, and compelling conversion brief highlighting the brand's unique value propositions, craftsmanship, and products.`;
+
   // System Prompt for Strategic Copywriting
   const systemPrompt = `You are an elite E-commerce Conversion Rate Optimization (CRO) strategist and master brand copywriter.
-Your task is to generate a comprehensive, highly persuasive marketing copy brief for a "${pageType}" page for the brand "${storeBrandName}".
+Your task is to generate a comprehensive, highly persuasive marketing copy brief and dynamic brand color palette for a "${pageType}" page for the brand "${storeBrandName}".
 
 ### CRITICAL RULES:
-1. **GROUND TRUTH ONLY:** Ground all headlines, copy, specs, and benefits strictly in the merchant's real store catalog products and policies provided below.
-2. **NO FAKE PRODUCTS:** Do NOT invent unrelated products (e.g. if the store sells snowboards, write about snowboards, flex rating, camber, edges, and mountain riding).
-3. **BRAND IDENTITY:** The brand name is "${storeBrandName}". NEVER use the word "PageMatic" or "Pagematic" in any copy.
-4. **NO INPUT FIELDS OR FORMS:** NEVER generate email capture boxes, text inputs, or forms. All conversion actions MUST be actionable buttons (links, cart actions, or scroll anchors).
-5. **CURRENT YEAR:** Use ${currentYear} in copyright notices.
-6. **OUTPUT FORMAT:** Return ONLY a valid JSON object matching the requested template schema. Do not include markdown backticks or conversational text.`;
+1. **OBEY MERCHANT DIRECTIVES:** The merchant's custom instructions, angles, discounts, tone, and focus points are YOUR HIGHEST PRIORITY. You MUST weave them directly into the headlines, value props, callouts, and design palette.
+2. **GROUND TRUTH ONLY:** Ground all product specs, materials, and features strictly in the merchant's real store catalog products and policies provided below.
+3. **NO FAKE PRODUCTS:** Do NOT invent unrelated products (e.g. if the store sells snowboards, write about snowboards, flex rating, camber, edges, and mountain riding).
+4. **BRAND IDENTITY:** The brand name is "${storeBrandName}". NEVER use the word "PageMatic" or "Pagematic" in any copy.
+5. **NO INPUT FIELDS OR FORMS:** NEVER generate email capture boxes, text inputs, or forms. All conversion actions MUST be actionable buttons (links, cart actions, or scroll anchors).
+6. **DYNAMIC BRAND COLOR PALETTE (\`themeTokens\`):** Choose an exquisite, harmonious, and conversion-optimized CSS color palette that harmonizes with the brand niche ("${niche}"), products, selected style preset ("${stylePreset}"), and ANY merchant color directives.
+   - **Contrast & Legibility:** ALWAYS maintain high visual contrast (dark text on light backgrounds or light text on dark backgrounds). NEVER use low-contrast text.
+   - **Merchant Color Directives:** Strictly honor any color preferences, prohibitions, or brand rules in the merchant instructions (e.g. if the merchant forbids red and black, select fresh compliant colors like emerald green, royal blue, slate, and clean white).
+7. **CURRENT YEAR:** Use ${currentYear} in copyright notices.
+8. **OUTPUT FORMAT:** Return ONLY a valid JSON object matching the requested template schema. Do not include markdown backticks or conversational text.`;
 
   // Build Comprehensive Real Store Context
   let storeDump = `=== REAL STORE CATALOG & INGESTED CONTEXT ===
@@ -84,7 +99,7 @@ Currency: ${shopInfo.currencyCode || "USD"}
 Contact Email: ${shopInfo.email || `support@${shopInfo.myshopifyDomain || "store.com"}`}
 Niche: ${niche || "General E-commerce"}`;
 
-  if (promptText && promptText.trim()) {
+  if (hasCustomPrompt) {
     storeDump += `\n\nMERCHANT CUSTOM INSTRUCTIONS (PRIORITIZE THESE):
 "${promptText.trim()}"`;
   }
@@ -130,6 +145,14 @@ Niche: ${niche || "General E-commerce"}`;
 {
   "seoTitle": string (Compelling product page title),
   "seoDescription": string (150-160 char meta description),
+  "themeTokens": {
+    "--pm-primary": string (Hex code for primary CTA buttons and highlights, e.g. "#2563EB"),
+    "--pm-accent": string (Hex code for secondary accents/hover, e.g. "#1D4ED8"),
+    "--pm-bg": string (Hex code for main page background, e.g. "#FFFFFF"),
+    "--pm-surface": string (Hex code for card and section surfaces, e.g. "#F8FAFC"),
+    "--pm-text-heading": string (Hex code for main headings with maximum contrast, e.g. "#0F172A"),
+    "--pm-text-body": string (Hex code for body text with high readability, e.g. "#475569")
+  },
   "announcementBar": {
     "text": string (e.g. "Free Worldwide Express Shipping on Orders Over $50 • 30-Day Risk-Free Trial"),
     "badge": "LIMITED OFFER"
@@ -185,6 +208,14 @@ Niche: ${niche || "General E-commerce"}`;
 {
   "seoTitle": string,
   "seoDescription": string,
+  "themeTokens": {
+    "--pm-primary": string (Hex code for primary CTA buttons and highlights, e.g. "#2563EB"),
+    "--pm-accent": string (Hex code for secondary accents/hover, e.g. "#1D4ED8"),
+    "--pm-bg": string (Hex code for main page background, e.g. "#FFFFFF"),
+    "--pm-surface": string (Hex code for card and section surfaces, e.g. "#F8FAFC"),
+    "--pm-text-heading": string (Hex code for main headings with maximum contrast, e.g. "#0F172A"),
+    "--pm-text-body": string (Hex code for body text with high readability, e.g. "#475569")
+  },
   "promoBanner": {
     "heading": string (e.g. "EXCLUSIVE SEASON SALE: 20% OFF TODAY"),
     "countdownText": "Offer expires at midnight",
@@ -248,6 +279,14 @@ Niche: ${niche || "General E-commerce"}`;
 {
   "seoTitle": string,
   "seoDescription": string,
+  "themeTokens": {
+    "--pm-primary": string (Hex code for primary CTA buttons and highlights, e.g. "#2563EB"),
+    "--pm-accent": string (Hex code for secondary accents/hover, e.g. "#1D4ED8"),
+    "--pm-bg": string (Hex code for main page background, e.g. "#FFFFFF"),
+    "--pm-surface": string (Hex code for card and section surfaces, e.g. "#F8FAFC"),
+    "--pm-text-heading": string (Hex code for main headings with maximum contrast, e.g. "#0F172A"),
+    "--pm-text-body": string (Hex code for body text with high readability, e.g. "#475569")
+  },
   "hero": {
     "headline": string (Welcoming, bold brand mission headline),
     "subheadline": string (Engaging 2-sentence brand ethos),
@@ -292,6 +331,14 @@ Niche: ${niche || "General E-commerce"}`;
 {
   "seoTitle": string,
   "seoDescription": string,
+  "themeTokens": {
+    "--pm-primary": string (Hex code for primary CTA buttons and highlights, e.g. "#2563EB"),
+    "--pm-accent": string (Hex code for secondary accents/hover, e.g. "#1D4ED8"),
+    "--pm-bg": string (Hex code for main page background, e.g. "#FFFFFF"),
+    "--pm-surface": string (Hex code for card and section surfaces, e.g. "#F8FAFC"),
+    "--pm-text-heading": string (Hex code for main headings with maximum contrast, e.g. "#0F172A"),
+    "--pm-text-body": string (Hex code for body text with high readability, e.g. "#475569")
+  },
   "pageHeader": {
     "title": "Help Center & FAQ",
     "subtitle": "Instant answers regarding shipping times, returns, warranty, and product care."
@@ -336,11 +383,13 @@ Niche: ${niche || "General E-commerce"}`;
 
   const userPrompt = `Synthesize a comprehensive, high-converting CRO marketing brief for "${pageTitle}".
 
+${merchantDirectives}
+
 ${storeDump}
 
 ${templateSpecificInstructions}
 
-Return valid raw JSON only.`;
+REMINDER: Strictly execute the merchant's directives while grounding product specs in the store catalog above. Return valid raw JSON only.`;
 
   return {
     systemPrompt,
@@ -367,7 +416,23 @@ export function assemblePageFromPlan({
   storeCollections = [],
   shopInfo = {},
 }) {
-  const themeTokens = STYLE_THEME_TOKENS[stylePreset] || STYLE_THEME_TOKENS.minimal;
+  const fallbackTokens = STYLE_THEME_TOKENS[stylePreset] || STYLE_THEME_TOKENS.minimal;
+  const aiTokens = (planJson && typeof planJson.themeTokens === "object" && planJson.themeTokens) ? planJson.themeTokens : {};
+  
+  // Validate that AI provided actual valid CSS hex colors (#RGB, #RRGGBB, #RRGGBBAA)
+  const isValidHex = (val) => typeof val === "string" && /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(val.trim());
+
+  const themeTokens = {
+    ...fallbackTokens,
+    ...(isValidHex(aiTokens["--pm-primary"]) ? { "--pm-primary": aiTokens["--pm-primary"].trim() } : {}),
+    ...(isValidHex(aiTokens["--pm-accent"]) ? { "--pm-accent": aiTokens["--pm-accent"].trim() } : {}),
+    ...(isValidHex(aiTokens["--pm-bg"]) ? { "--pm-bg": aiTokens["--pm-bg"].trim() } : {}),
+    ...(isValidHex(aiTokens["--pm-surface"]) ? { "--pm-surface": aiTokens["--pm-surface"].trim() } : {}),
+    ...(isValidHex(aiTokens["--pm-text-heading"]) ? { "--pm-text-heading": aiTokens["--pm-text-heading"].trim() } : {}),
+    ...(isValidHex(aiTokens["--pm-text-body"]) ? { "--pm-text-body": aiTokens["--pm-text-body"].trim() } : {}),
+    ...(typeof aiTokens["--pm-radius"] === "string" && aiTokens["--pm-radius"].trim() ? { "--pm-radius": aiTokens["--pm-radius"].trim() } : {}),
+    ...(typeof aiTokens["--pm-font-heading"] === "string" && aiTokens["--pm-font-heading"].trim() ? { "--pm-font-heading": aiTokens["--pm-font-heading"].trim() } : {}),
+  };
   const plan = planJson || {};
   const sections = [];
   const now = Date.now();
@@ -992,8 +1057,9 @@ export function assemblePageFromPlan({
   return {
     pageType,
     stylePreset,
-    title: plan.seoTitle || pageTitle,
-    seoDescription: plan.seoDescription || `Discover ${pageTitle} at ${brandName}`,
+    title: pageTitle || plan.seoTitle || "New Page",
+    seoTitle: plan.seoTitle || pageTitle || "New Page",
+    seoDescription: plan.seoDescription || `Discover ${pageTitle || brandName}`,
     themeTokens,
     sections,
   };

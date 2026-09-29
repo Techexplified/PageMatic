@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Check, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router";
+import PagematicLoadingSvg from "../PagematicLoadingSvg";
 
 export default function StepGenerating({
   isSubmitting,
@@ -77,13 +78,9 @@ export default function StepGenerating({
 
   return (
     <div className="pm-generating-container">
-      {/* Centered 3D Illustration */}
+      {/* Centered Animated SVG Illustration */}
       <div className="pm-generating-illustration-wrap">
-        <img
-          src="/loading-screen-img.png"
-          alt="Generating Page"
-          className="pm-generating-img"
-        />
+        <PagematicLoadingSvg width={250} height={250} className="pm-generating-svg" />
       </div>
 
       {/* Main Title */}

@@ -212,13 +212,14 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="pm-dash-container">
-      {/* 1. Header Section */}
-      <div className="pm-dash-header">
-        <div className="pm-dash-title-group">
-          <h1 className="pm-dash-title">Dashboard</h1>
-          <p className="pm-dash-subtitle">View and manage all your pages.</p>
-        </div>
+    <div className="pm-dash-page">
+      <div className="pm-dash-container">
+        {/* 1. Header Section */}
+        <div className="pm-dash-header">
+          <div className="pm-dash-title-group">
+            <h1 className="pm-dash-title">Dashboard</h1>
+            <p className="pm-dash-subtitle">View and manage all your pages.</p>
+          </div>
 
         {/* Dual Gold & Silver Token Counter Pill on the same line */}
         <div className="pm-token-group-wrapper" ref={tokenPopoverRef}>
@@ -469,5 +470,6 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+  </div>
   );
 }

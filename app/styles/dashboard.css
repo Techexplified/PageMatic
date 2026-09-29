@@ -17,6 +17,18 @@
   --pm-dash-gold-icon: #F59E0B;
 }
 
+.pm-dash-page {
+  font-family: var(--pm-font-family);
+  min-height: 100vh;
+  background-color: #F8FAFC;
+  background-image: linear-gradient(135deg, #F0F6FF 0%, #FAFBFD 50%, #EFF6FF 100%);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  color: var(--pm-dash-heading);
+  padding: 32px 0 100px;
+}
+
 .pm-dash-container,
 .pm-dash-container input,
 .pm-dash-container button,
@@ -26,9 +38,10 @@
 }
 
 .pm-dash-container {
+  width: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 36px 24px;
+  padding: 0 24px;
   color: var(--pm-dash-heading);
   box-sizing: border-box;
 }

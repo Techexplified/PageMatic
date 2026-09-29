@@ -13,10 +13,23 @@ import {
   Layout,
   Home,
   HelpCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import "../styles/dashboard.css";
+
+// Format page type label
+const formatPageType = (type) => {
+  const map = {
+    PRODUCT: "Product Page",
+    LANDING: "Landing Page",
+    HOME: "Home Page",
+    FAQ: "FAQ Page",
+  };
+  return map[type] || "Landing Page";
+};
 
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
@@ -86,6 +99,53 @@ export default function Dashboard() {
   const fetcher = useFetcher();
   const tokenPopoverRef = useRef(null);
 
+  // Filter pages by search query
+  const filteredPages = pages.filter((p) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      p.title.toLowerCase().includes(q) ||
+      formatPageType(p.pageType).toLowerCase().includes(q) ||
+      p.handle.toLowerCase().includes(q)
+    );
+  });
+
+  // Pagination logic (5 items per page)
+  const perPage = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filteredPages.length / perPage));
+  const startIndex = (currentPage - 1) * perPage;
+  const endIndex = Math.min(startIndex + perPage, filteredPages.length);
+  const paginatedPages = filteredPages.slice(startIndex, startIndex + perPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const handlePageChange = (page) => {
+    if (page > 0 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // Generate visible page numbers for pagination bar
+  const getPageNumbers = () => {
+    const list = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        list.push(i);
+      }
+    } else {
+      if (currentPage <= 4) {
+        list.push(1, 2, 3, 4, 5, "...", totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        list.push(1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        list.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
+      }
+    }
+    return list;
+  };
+
   // Close popover when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -98,17 +158,6 @@ export default function Dashboard() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  // Format page type label
-  const formatPageType = (type) => {
-    const map = {
-      PRODUCT: "Product Page",
-      LANDING: "Landing Page",
-      HOME: "Home Page",
-      FAQ: "FAQ Page",
-    };
-    return map[type] || "Landing Page";
-  };
 
   // Get fallback icon for page type
   const getPageIcon = (type) => {
@@ -200,16 +249,6 @@ export default function Dashboard() {
       window.open(targetUrl, "_blank");
     }
   };
-
-  // Filter pages by search query
-  const filteredPages = pages.filter((p) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      p.title.toLowerCase().includes(q) ||
-      formatPageType(p.pageType).toLowerCase().includes(q) ||
-      p.handle.toLowerCase().includes(q)
-    );
-  });
 
   return (
     <div className="pm-dash-page">
@@ -328,14 +367,14 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPages.map((page, index) => {
+                {paginatedPages.map((page, index) => {
                   const thumb = getThumbnail(page);
                   const isPublished = page.status === "PUBLISHED";
 
                   return (
                     <tr key={page.id}>
                       {/* 1. Index # */}
-                      <td className="pm-col-idx">{index + 1}</td>
+                      <td className="pm-col-idx">{startIndex + index + 1}</td>
 
                       {/* 2. Page Name + Thumbnail / Icon */}
                       <td>
@@ -468,6 +507,66 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* 3. Pagination Footer Bar */}
+        {filteredPages.length > 0 && (
+          <div className="pm-pagination-bar">
+            <div className="pm-pagination-info">
+              Showing <strong>{startIndex + 1}</strong>–<strong>{endIndex}</strong> of{" "}
+              <strong>{filteredPages.length}</strong> {filteredPages.length === 1 ? "page" : "pages"}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="pm-pagination-controls">
+                <button
+                  type="button"
+                  className="pm-pagination-nav-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  title="Previous Page"
+                >
+                  <ChevronLeft size={16} />
+                  <span>Previous</span>
+                </button>
+
+                <div className="pm-pagination-pages">
+                  {getPageNumbers().map((num, idx) => {
+                    if (num === "...") {
+                      return (
+                        <span key={`ellipsis-${idx}`} className="pm-pagination-ellipsis">
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <button
+                        key={num}
+                        type="button"
+                        className={`pm-pagination-page-btn ${
+                          currentPage === num ? "pm-pagination-page-btn--active" : ""
+                        }`}
+                        onClick={() => handlePageChange(num)}
+                      >
+                        {num}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className="pm-pagination-nav-btn"
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  title="Next Page"
+                >
+                  <span>Next</span>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   </div>

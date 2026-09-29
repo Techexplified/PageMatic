@@ -55,7 +55,7 @@ export default function EditorPreviewCanvas({
 
         {sections.length === 0 && (
           <div style={{ padding: "80px 20px", textAlign: "center", color: "#94A3B8" }}>
-            <p>No sections to display. Click "Add Section" on the left panel to begin.</p>
+            <p>No sections to display. Use the sidebar on the left to configure your page.</p>
           </div>
         )}
       </div>

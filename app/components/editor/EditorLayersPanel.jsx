@@ -1,10 +1,10 @@
+import { useState, useRef } from "react";
 import {
   Layers,
   Eye,
   EyeOff,
   Trash2,
-  ChevronUp,
-  ChevronDown,
+  GripVertical,
   Plus,
   Layout,
   Star,
@@ -30,6 +30,11 @@ export default function EditorLayersPanel({
   onDeleteSection,
   onAddSection,
 }) {
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [dropPosition, setDropPosition] = useState(null); // 'top' | 'bottom'
+  const dragNodeRef = useRef(null);
+
   const getSectionIcon = (type) => {
     const t = (type || "").toUpperCase();
     switch (t) {
@@ -86,6 +91,65 @@ export default function EditorLayersPanel({
       .replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
+  // Drag & Drop Handlers
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    dragNodeRef.current = e.currentTarget;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index.toString());
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+
+    if (draggedIndex === null || draggedIndex === index) {
+      setDragOverIndex(null);
+      setDropPosition(null);
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const isTop = e.clientY < midY;
+
+    setDragOverIndex(index);
+    setDropPosition(isTop ? "top" : "bottom");
+  };
+
+  const handleDragLeave = (e) => {
+    // Only reset if leaving the card entirely
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverIndex(null);
+      setDropPosition(null);
+    }
+  };
+
+  const handleDrop = (e, targetIndex) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      handleDragEnd();
+      return;
+    }
+
+    let finalTargetIndex = targetIndex;
+    if (dropPosition === "bottom" && draggedIndex > targetIndex) {
+      finalTargetIndex = targetIndex + 1;
+    } else if (dropPosition === "top" && draggedIndex < targetIndex) {
+      finalTargetIndex = targetIndex - 1;
+    }
+
+    onMoveSection(draggedIndex, finalTargetIndex);
+    handleDragEnd();
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    setDropPosition(null);
+    dragNodeRef.current = null;
+  };
+
   return (
     <aside className="pm-editor-layers-panel">
       {/* Panel Header */}
@@ -104,14 +168,32 @@ export default function EditorLayersPanel({
         {sections.map((sec, index) => {
           const isSelected = sec.id === selectedSectionId;
           const isHidden = sec.visible === false;
+          const isDragging = draggedIndex === index;
+          const isTarget = dragOverIndex === index;
 
           return (
             <div
               key={sec.id || index}
-              className={`pm-layer-item ${isSelected ? "pm-layer-item--active" : ""}`}
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, index)}
+              onDragEnd={handleDragEnd}
+              className={`pm-layer-item ${isSelected ? "pm-layer-item--active" : ""} ${
+                isDragging ? "pm-layer-item--dragging" : ""
+              } ${isTarget ? (dropPosition === "top" ? "pm-drag-over-top" : "pm-drag-over-bottom") : ""}`}
               onClick={() => setSelectedSectionId(sec.id)}
             >
               <div className="pm-layer-left">
+                {/* Drag Grip Handle */}
+                <div
+                  className="pm-layer-grip"
+                  title="Drag to reorder"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <GripVertical size={13} color="#94A3B8" />
+                </div>
                 {getSectionIcon(sec.type)}
                 <span style={{ opacity: isHidden ? 0.5 : 1 }}>
                   {formatSectionName(sec.type)}
@@ -119,30 +201,6 @@ export default function EditorLayersPanel({
               </div>
 
               <div className="pm-layer-actions" onClick={(e) => e.stopPropagation()}>
-                {/* Move Up */}
-                {index > 0 && (
-                  <button
-                    type="button"
-                    className="pm-layer-action-btn"
-                    onClick={() => onMoveSection(index, index - 1)}
-                    title="Move Up"
-                  >
-                    <ChevronUp size={13} />
-                  </button>
-                )}
-
-                {/* Move Down */}
-                {index < sections.length - 1 && (
-                  <button
-                    type="button"
-                    className="pm-layer-action-btn"
-                    onClick={() => onMoveSection(index, index + 1)}
-                    title="Move Down"
-                  >
-                    <ChevronDown size={13} />
-                  </button>
-                )}
-
                 {/* Visibility Toggle */}
                 <button
                   type="button"
@@ -184,3 +242,4 @@ export default function EditorLayersPanel({
     </aside>
   );
 }
+

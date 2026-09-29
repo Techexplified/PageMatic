@@ -3,7 +3,7 @@ import { useLoaderData, useFetcher, data } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { generateWithOpenRouter } from "../services/openrouter.server";
-import { AI_MODELS, SECTION_ALLOWED_KEYS } from "../libs/ai-config";
+import { AI_MODELS, SECTION_ALLOWED_KEYS, STYLE_THEME_TOKENS } from "../libs/ai-config";
 
 /**
  * Strips phantom or mismatched schema fields from section data based on section type
@@ -26,9 +26,8 @@ function sanitizeSections(sections) {
 
 // Studio Editor Sub-components
 import EditorHeader from "../components/editor/EditorHeader";
-import EditorLayersPanel from "../components/editor/EditorLayersPanel";
+import EditorSidebar from "../components/editor/EditorSidebar";
 import EditorPreviewCanvas from "../components/editor/EditorPreviewCanvas";
-import EditorInspectorPanel from "../components/editor/EditorInspectorPanel";
 import "../styles/editor.css";
 
 // ============================================================================
@@ -275,6 +274,85 @@ Return the updated section data JSON object:`;
     }
   }
 
+  // 3. OPENROUTER AI THEME & PALETTE RE-ROLL
+  if (intent === "REROLL_THEME") {
+    const currentThemeStr = formData.get("currentTheme");
+    const prompt = formData.get("prompt") || "Generate a modern, high-converting aesthetic color palette.";
+
+    let currentTheme = {};
+    try {
+      if (currentThemeStr) currentTheme = JSON.parse(currentThemeStr);
+    } catch (e) {}
+
+    const systemPrompt = `You are a world-class UI/UX Design System Architect specializing in E-commerce color harmonies and conversion palettes.
+Your task is to generate a beautiful, high-contrast, cohesive 6-part CSS theme palette for an e-commerce storefront.
+
+### STRICT PALETTE REQUIREMENTS:
+1. **HIGH CONTRAST & WCAG READABILITY:**
+   - "--pm-text-heading" and "--pm-text-body" MUST contrast strongly against "--pm-bg" and "--pm-surface".
+   - Dark mode pages must have light heading/body text; Light mode pages must have dark heading/body text.
+2. **HEX FORMAT ONLY:** All color values must be valid 6-character hex codes (e.g. "#0052FF", "#0F172A", "#FFFFFF").
+3. **TOKEN SCHEMA:**
+   - "--pm-primary": Main CTA button background and primary brand color.
+   - "--pm-accent": Secondary button background, hover states, and accent highlights.
+   - "--pm-bg": Main canvas background color.
+   - "--pm-surface": Card surface, review box, and alternating section background.
+   - "--pm-text-heading": Main title & heading contrast color.
+   - "--pm-text-body": Secondary body & paragraph text.
+   - "--pm-radius": (Optional) Border radius e.g. "8px" or "12px".
+   - "--pm-font-heading": (Optional) Font family e.g. "Inter, sans-serif" or "Georgia, serif".
+4. **OUTPUT FORMAT:** Return ONLY a valid raw JSON object matching the themeTokens schema. Do NOT include markdown formatting, conversational text, or backticks.`;
+
+    const userPrompt = `Generate a cohesive theme palette based on this merchant instruction:
+"${prompt}"
+
+CURRENT THEME TOKENS:
+${JSON.stringify(currentTheme, null, 2)}
+
+Return the updated themeTokens JSON object:`;
+
+    try {
+      const res = await generateWithOpenRouter({
+        systemPrompt,
+        userPrompt,
+        model: AI_MODELS.MICRO_EDITS.PRIMARY,
+        fallbacks: AI_MODELS.MICRO_EDITS.FALLBACKS,
+        maxTokens: 1000,
+        temperature: 0.7,
+      });
+
+      const aiTokens = res.data || {};
+      const isValidHex = (val) => typeof val === "string" && /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(val.trim());
+
+      const updatedTheme = {
+        ...currentTheme,
+        ...(isValidHex(aiTokens["--pm-primary"]) ? { "--pm-primary": aiTokens["--pm-primary"].trim() } : {}),
+        ...(isValidHex(aiTokens["--pm-accent"]) ? { "--pm-accent": aiTokens["--pm-accent"].trim() } : {}),
+        ...(isValidHex(aiTokens["--pm-bg"]) ? { "--pm-bg": aiTokens["--pm-bg"].trim() } : {}),
+        ...(isValidHex(aiTokens["--pm-surface"]) ? { "--pm-surface": aiTokens["--pm-surface"].trim() } : {}),
+        ...(isValidHex(aiTokens["--pm-text-heading"]) ? { "--pm-text-heading": aiTokens["--pm-text-heading"].trim() } : {}),
+        ...(isValidHex(aiTokens["--pm-text-body"]) ? { "--pm-text-body": aiTokens["--pm-text-body"].trim() } : {}),
+        ...(typeof aiTokens["--pm-radius"] === "string" && aiTokens["--pm-radius"].trim() ? { "--pm-radius": aiTokens["--pm-radius"].trim() } : {}),
+        ...(typeof aiTokens["--pm-font-heading"] === "string" && aiTokens["--pm-font-heading"].trim() ? { "--pm-font-heading": aiTokens["--pm-font-heading"].trim() } : {}),
+      };
+
+      return data({
+        success: true,
+        updatedTheme,
+        modelUsed: res.modelUsed,
+      });
+    } catch (err) {
+      console.error("[Editor Theme Re-roll Error]:", err);
+      return data(
+        {
+          success: false,
+          error: err.message || "Failed to re-roll theme. Please try again.",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   return data({ success: true });
 };
 
@@ -285,6 +363,7 @@ export default function StudioEditor() {
   const { page: loaderPage, shopSettings } = useLoaderData();
   const saveFetcher = useFetcher();
   const rerollFetcher = useFetcher();
+  const themeFetcher = useFetcher();
 
   // In-Memory / Loaded Page State
   const [page, setPage] = useState(loaderPage || null);
@@ -300,18 +379,17 @@ export default function StudioEditor() {
 
     // If loader provided page directly by ID from database, prioritize it
     if (loaderPage) {
+      const defaultTokens = STYLE_THEME_TOKENS[loaderPage.stylePreset] || STYLE_THEME_TOKENS.minimal;
       const sanitized = {
         ...loaderPage,
         contentJson: {
           ...loaderPage.contentJson,
+          themeTokens: loaderPage.contentJson?.themeTokens || defaultTokens,
           sections: sanitizeSections(loaderPage.contentJson?.sections),
         },
       };
       setPage(sanitized);
       setPageTitle(loaderPage.title || "Untitled Page");
-      if (loaderPage.contentJson?.sections?.length > 0) {
-        setSelectedSectionId(loaderPage.contentJson.sections[0].id);
-      }
       return;
     }
 
@@ -321,18 +399,17 @@ export default function StudioEditor() {
         try {
           const parsed = JSON.parse(stored);
           if (parsed && parsed.contentJson) {
+            const defaultTokens = STYLE_THEME_TOKENS[parsed.stylePreset] || STYLE_THEME_TOKENS.minimal;
             const sanitized = {
               ...parsed,
               contentJson: {
                 ...parsed.contentJson,
+                themeTokens: parsed.contentJson?.themeTokens || defaultTokens,
                 sections: sanitizeSections(parsed.contentJson?.sections),
               },
             };
             setPage(sanitized);
             setPageTitle(parsed.title || "Untitled Page");
-            if (parsed.contentJson.sections?.length > 0) {
-              setSelectedSectionId(parsed.contentJson.sections[0].id);
-            }
             return;
           }
         } catch (e) {
@@ -360,7 +437,7 @@ export default function StudioEditor() {
     }
   }, [saveFetcher.data]);
 
-  // Handle AI Re-roll action response
+  // Handle AI Section Re-roll action response
   useEffect(() => {
     if (rerollFetcher.data?.success && rerollFetcher.data?.updatedData) {
       const targetId = rerollFetcher.data.sectionId || selectedSectionId;
@@ -370,11 +447,28 @@ export default function StudioEditor() {
     }
   }, [rerollFetcher.data]);
 
+  // Handle AI Theme Re-roll action response
+  useEffect(() => {
+    if (themeFetcher.data?.success && themeFetcher.data?.updatedTheme) {
+      handleUpdateThemeTokens(themeFetcher.data.updatedTheme);
+    }
+  }, [themeFetcher.data]);
+
   const contentJson = page?.contentJson || { sections: [], themeTokens: {} };
   const sections = contentJson.sections || [];
-  const themeTokens = contentJson.themeTokens || {};
-
-  const selectedSection = sections.find((s) => s.id === selectedSectionId) || sections[0];
+  const defaultTokens = STYLE_THEME_TOKENS[page?.stylePreset] || STYLE_THEME_TOKENS.minimal || {
+    "--pm-primary": "#0052FF",
+    "--pm-accent": "#2563EB",
+    "--pm-bg": "#FFFFFF",
+    "--pm-surface": "#F8FAFC",
+    "--pm-text-heading": "#0F172A",
+    "--pm-text-body": "#475569",
+    "--pm-radius": "8px",
+  };
+  const themeTokens = {
+    ...defaultTokens,
+    ...(contentJson.themeTokens || {}),
+  };
 
   // 1. Toggle Section Visibility (Hide/Show)
   const handleToggleVisibility = (sectionId) => {
@@ -400,33 +494,12 @@ export default function StudioEditor() {
   const handleDeleteSection = (sectionId) => {
     const updated = sections.filter((s) => s.id !== sectionId);
     updateSectionsInState(updated);
-    if (selectedSectionId === sectionId && updated.length > 0) {
-      setSelectedSectionId(updated[0].id);
+    if (selectedSectionId === sectionId) {
+      setSelectedSectionId(updated.length > 0 ? updated[0].id : null);
     }
   };
 
-  // 4. Add Section
-  const handleAddSection = () => {
-    const newSec = {
-      id: `sec_custom_${Date.now()}`,
-      type: "BENEFITS_GRID",
-      visible: true,
-      data: {
-        heading: "New Custom Section",
-        subtitle: "Add your key value propositions here.",
-        items: [
-          { title: "Point 1", description: "Highlight your key feature." },
-          { title: "Point 2", description: "Another conversion driver." },
-          { title: "Point 3", description: "Risk-free guarantee or support." },
-        ],
-      },
-    };
-    const updated = [...sections, newSec];
-    updateSectionsInState(updated);
-    setSelectedSectionId(newSec.id);
-  };
-
-  // 5. Update Section Data (from Inspector or field inputs)
+  // 4. Update Section Data (from Sidebar inline fields)
   const handleUpdateSectionData = (sectionId, newData) => {
     const updated = sections.map((sec) => {
       if (sec.id === sectionId) {
@@ -437,7 +510,7 @@ export default function StudioEditor() {
     updateSectionsInState(updated);
   };
 
-  // 6. Trigger AI Section Re-Roll
+  // 5. Trigger AI Section Re-Roll
   const handleAiReRoll = (section, prompt) => {
     const formData = new FormData();
     formData.append("intent", "REROLL_SECTION");
@@ -447,6 +520,43 @@ export default function StudioEditor() {
     formData.append("prompt", prompt);
 
     rerollFetcher.submit(formData, { method: "POST" });
+  };
+
+  // 6. Update Theme Tokens (Colors & Styling)
+  const handleUpdateThemeTokens = (newThemeTokens) => {
+    const updatedContent = {
+      ...contentJson,
+      themeTokens: newThemeTokens,
+    };
+    const updatedPage = {
+      ...page,
+      title: pageTitle,
+      contentJson: updatedContent,
+    };
+    setPage(updatedPage);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("pagematic_generated_page", JSON.stringify(updatedPage));
+      localStorage.setItem("pagematic_live_preview", JSON.stringify(updatedPage));
+
+      // Broadcast live changes to any open preview tab
+      if ("BroadcastChannel" in window) {
+        try {
+          const bc = new BroadcastChannel("pagematic_preview_sync");
+          bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: updatedPage });
+          setTimeout(() => bc.close(), 100);
+        } catch (e) {}
+      }
+    }
+  };
+
+  // 7. Trigger AI Global Theme Re-Roll
+  const handleAiThemeReRoll = (prompt) => {
+    const formData = new FormData();
+    formData.append("intent", "REROLL_THEME");
+    formData.append("currentTheme", JSON.stringify(themeTokens));
+    formData.append("prompt", prompt);
+
+    themeFetcher.submit(formData, { method: "POST" });
   };
 
   // Listen for preview window asking for live data
@@ -492,7 +602,7 @@ export default function StudioEditor() {
     }
   };
 
-  // 7. Save Draft Page to PostgreSQL Database
+  // 8. Save Draft Page to PostgreSQL Database
   const handleSave = () => {
     const payload = { ...page, title: pageTitle, contentJson };
     if (typeof window !== "undefined") {
@@ -513,7 +623,7 @@ export default function StudioEditor() {
     saveFetcher.submit(formData, { method: "POST" });
   };
 
-  // 8. Standalone Sandboxed Live Preview in New Tab (Zero Shopify store pollution)
+  // 9. Standalone Sandboxed Live Preview in New Tab
   const handlePreview = () => {
     if (typeof window !== "undefined") {
       const payload = { ...page, title: pageTitle, contentJson };
@@ -542,7 +652,7 @@ export default function StudioEditor() {
     }
   };
 
-  // 9. Publish (Reserved for Step 5)
+  // 10. Publish (Reserved for Step 5)
   const handlePublish = () => {
     alert(`Ready for Step 5! Publishing "${pageTitle}" directly to your Shopify Online Store.`);
   };
@@ -557,6 +667,7 @@ export default function StudioEditor() {
 
   const isSaving = saveFetcher.state === "submitting" || saveFetcher.state === "loading";
   const isReRolling = rerollFetcher.state === "submitting" || rerollFetcher.state === "loading";
+  const isReRollingTheme = themeFetcher.state === "submitting" || themeFetcher.state === "loading";
 
   return (
     <div className="pm-editor-root">
@@ -576,34 +687,32 @@ export default function StudioEditor() {
         isSaving={isSaving}
       />
 
-      {/* 3-Column Body */}
+      {/* 2-Column Body: Unified Sidebar + Expanded Live Canvas */}
       <div className="pm-editor-body">
-        {/* Left Column: Layers Panel */}
-        <EditorLayersPanel
+        {/* Left Column: Sidebar (Global Theme + Accordion Layer Editors) */}
+        <EditorSidebar
           sections={sections}
+          themeTokens={themeTokens}
           selectedSectionId={selectedSectionId}
           setSelectedSectionId={setSelectedSectionId}
           onToggleVisibility={handleToggleVisibility}
           onMoveSection={handleMoveSection}
           onDeleteSection={handleDeleteSection}
-          onAddSection={handleAddSection}
+          onUpdateSectionData={handleUpdateSectionData}
+          onAiReRollSection={handleAiReRoll}
+          isReRollingSection={isReRolling}
+          onUpdateThemeTokens={handleUpdateThemeTokens}
+          onAiReRollTheme={handleAiThemeReRoll}
+          isReRollingTheme={isReRollingTheme}
         />
 
-        {/* Center Column: Live Responsive Canvas */}
+        {/* Right Column: Live Responsive Canvas (~65-70% width) */}
         <EditorPreviewCanvas
           sections={sections}
           themeTokens={themeTokens}
           selectedSectionId={selectedSectionId}
           setSelectedSectionId={setSelectedSectionId}
           deviceMode={deviceMode}
-        />
-
-        {/* Right Column: Dynamic Inspector Panel */}
-        <EditorInspectorPanel
-          selectedSection={selectedSection}
-          onUpdateSectionData={handleUpdateSectionData}
-          onAiReRoll={handleAiReRoll}
-          isReRolling={isReRolling}
         />
       </div>
     </div>

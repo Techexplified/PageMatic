@@ -187,3 +187,85 @@ export const SECTION_ALLOWED_KEYS = {
   FOOTER: ["brandName", "copyrightText", "links"],
 };
 
+// Curated 1-Click Aesthetic Presets for Global Theme Customizer
+export const PRESET_PALETTES = [
+  {
+    id: "minimal",
+    name: "Minimal Blue",
+    tokens: {
+      "--pm-primary": "#0052FF",
+      "--pm-accent": "#2563EB",
+      "--pm-bg": "#FFFFFF",
+      "--pm-surface": "#F8FAFC",
+      "--pm-text-heading": "#0F172A",
+      "--pm-text-body": "#475569",
+      "--pm-radius": "8px",
+    },
+  },
+  {
+    id: "midnight",
+    name: "Midnight Dark",
+    tokens: {
+      "--pm-primary": "#3B82F6",
+      "--pm-accent": "#1D4ED8",
+      "--pm-bg": "#09090B",
+      "--pm-surface": "#18181B",
+      "--pm-text-heading": "#FAFAFA",
+      "--pm-text-body": "#A1A1AA",
+      "--pm-radius": "10px",
+    },
+  },
+  {
+    id: "emerald",
+    name: "Emerald Luxury",
+    tokens: {
+      "--pm-primary": "#059669",
+      "--pm-accent": "#10B981",
+      "--pm-bg": "#F0FDF4",
+      "--pm-surface": "#DCFCE7",
+      "--pm-text-heading": "#064E3B",
+      "--pm-text-body": "#065F46",
+      "--pm-radius": "12px",
+    },
+  },
+  {
+    id: "terracotta",
+    name: "Warm Earth",
+    tokens: {
+      "--pm-primary": "#C2410C",
+      "--pm-accent": "#EA580C",
+      "--pm-bg": "#FFF7ED",
+      "--pm-surface": "#FFEDD5",
+      "--pm-text-heading": "#431407",
+      "--pm-text-body": "#7C2D12",
+      "--pm-radius": "6px",
+    },
+  },
+  {
+    id: "editorial",
+    name: "Editorial Purple",
+    tokens: {
+      "--pm-primary": "#4338CA",
+      "--pm-accent": "#3730A3",
+      "--pm-bg": "#FAF5EF",
+      "--pm-surface": "#F5EFEB",
+      "--pm-text-heading": "#1E1B4B",
+      "--pm-text-body": "#4B5563",
+      "--pm-radius": "4px",
+    },
+  },
+  {
+    id: "obsidian_gold",
+    name: "Obsidian & Gold",
+    tokens: {
+      "--pm-primary": "#D97706",
+      "--pm-accent": "#F59E0B",
+      "--pm-bg": "#0F172A",
+      "--pm-surface": "#1E293B",
+      "--pm-text-heading": "#F8FAFC",
+      "--pm-text-body": "#94A3B8",
+      "--pm-radius": "8px",
+    },
+  },
+];
+

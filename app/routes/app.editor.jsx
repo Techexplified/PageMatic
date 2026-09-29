@@ -28,6 +28,7 @@ function sanitizeSections(sections) {
 import EditorHeader from "../components/editor/EditorHeader";
 import EditorSidebar from "../components/editor/EditorSidebar";
 import EditorPreviewCanvas from "../components/editor/EditorPreviewCanvas";
+import { CheckCircle2, AlertTriangle, Info, X } from "lucide-react";
 import "../styles/editor.css";
 
 // ============================================================================
@@ -206,17 +207,27 @@ Return the updated section data JSON object:`;
       });
 
       const aiData = res.data || {};
-      const updatedData = { ...currentData };
+      if (!aiData || Object.keys(aiData).length === 0) {
+        return data({
+          success: false,
+          error: "AI could not generate changes for this section. Please try rephrasing your prompt or click Re-roll again.",
+        });
+      }
 
+      const updatedData = { ...currentData };
       const secType = (sectionType || "").toUpperCase();
       const allowedKeys = SECTION_ALLOWED_KEYS[secType];
 
+      let changedFieldsCount = 0;
       // Copy valid fields from aiData that belong to this section
       for (const [k, v] of Object.entries(aiData)) {
         if (v !== undefined && v !== null) {
           // If allowedKeys is defined, only copy fields that belong to this section type
           if (allowedKeys && !allowedKeys.includes(k)) {
             continue;
+          }
+          if (JSON.stringify(updatedData[k]) !== JSON.stringify(v)) {
+            changedFieldsCount++;
           }
           updatedData[k] = v;
         }
@@ -248,14 +259,6 @@ Return the updated section data JSON object:`;
         }
       }
 
-      // Token deduction disabled during development/testing phase
-      // if (shopSettings && shopSettings.iterationTokens > 0) {
-      //   await db.shopSettings.update({
-      //     where: { id: shopSettings.id },
-      //     data: { iterationTokens: Math.max(0, shopSettings.iterationTokens - 2) },
-      //   });
-      // }
-
       return data({
         success: true,
         sectionId,
@@ -264,13 +267,14 @@ Return the updated section data JSON object:`;
       });
     } catch (err) {
       console.error("[Editor Re-roll Error]:", err);
-      return data(
-        {
-          success: false,
-          error: err.message || "Failed to re-roll section. Please try again.",
-        },
-        { status: 400 }
-      );
+      let userFriendly = "AI models are momentarily busy. Please click Re-roll again in a few seconds.";
+      if (err.message && !err.message.includes("fetch") && !err.message.includes("500") && !err.message.includes("429") && !err.message.includes("JSON")) {
+        userFriendly = `AI could not rewrite section: ${err.message}`;
+      }
+      return data({
+        success: false,
+        error: userFriendly,
+      });
     }
   }
 
@@ -324,6 +328,14 @@ Return the updated themeTokens JSON object:`;
       const aiTokens = res.data || {};
       const isValidHex = (val) => typeof val === "string" && /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(val.trim());
 
+      const validKeys = Object.keys(aiTokens).filter(k => isValidHex(aiTokens[k]));
+      if (validKeys.length === 0) {
+        return data({
+          success: false,
+          error: "AI could not generate valid color codes. Try describing specific colors (e.g. 'Emerald green with warm gold').",
+        });
+      }
+
       const updatedTheme = {
         ...currentTheme,
         ...(isValidHex(aiTokens["--pm-primary"]) ? { "--pm-primary": aiTokens["--pm-primary"].trim() } : {}),
@@ -343,13 +355,14 @@ Return the updated themeTokens JSON object:`;
       });
     } catch (err) {
       console.error("[Editor Theme Re-roll Error]:", err);
-      return data(
-        {
-          success: false,
-          error: err.message || "Failed to re-roll theme. Please try again.",
-        },
-        { status: 400 }
-      );
+      let userFriendly = "AI models are momentarily busy. Please click Re-roll again in a few seconds.";
+      if (err.message && !err.message.includes("fetch") && !err.message.includes("500") && !err.message.includes("429") && !err.message.includes("JSON")) {
+        userFriendly = `AI could not generate palette: ${err.message}`;
+      }
+      return data({
+        success: false,
+        error: userFriendly,
+      });
     }
   }
 
@@ -370,7 +383,21 @@ export default function StudioEditor() {
   const [pageTitle, setPageTitle] = useState("");
   const [deviceMode, setDeviceMode] = useState("desktop"); // desktop | tablet | mobile
   const [selectedSectionId, setSelectedSectionId] = useState(null);
+  const [toast, setToast] = useState(null); // { id, message, type: 'success' | 'error' | 'info' }
   const isInitializedRef = useRef(false);
+
+  const showToast = (message, type = "success") => {
+    setToast({ id: Date.now(), message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Initialize from sessionStorage or loader on mount (ONLY ONCE)
   useEffect(() => {
@@ -421,36 +448,57 @@ export default function StudioEditor() {
 
   // Sync state when page is saved to database
   useEffect(() => {
-    if (saveFetcher.data?.savedPage) {
-      const persisted = saveFetcher.data.savedPage;
-      setPage(persisted);
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("pagematic_generated_page", JSON.stringify(persisted));
-        localStorage.setItem("pagematic_live_preview", JSON.stringify(persisted));
+    if (saveFetcher.data) {
+      if (saveFetcher.data.success && saveFetcher.data.savedPage) {
+        const persisted = saveFetcher.data.savedPage;
+        setPage(persisted);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("pagematic_generated_page", JSON.stringify(persisted));
+          localStorage.setItem("pagematic_live_preview", JSON.stringify(persisted));
 
-        const url = new URL(window.location.href);
-        if (url.searchParams.get("pageId") !== persisted.id) {
-          url.searchParams.set("pageId", persisted.id);
-          window.history.replaceState({}, "", url.toString());
+          const url = new URL(window.location.href);
+          if (url.searchParams.get("pageId") !== persisted.id) {
+            url.searchParams.set("pageId", persisted.id);
+            window.history.replaceState({}, "", url.toString());
+          }
         }
+        showToast("Page draft saved to Shopify!", "success");
+      } else if (saveFetcher.data.error || saveFetcher.data.success === false) {
+        showToast(saveFetcher.data.error || "Failed to save page draft. Please try again.", "error");
       }
     }
   }, [saveFetcher.data]);
 
   // Handle AI Section Re-roll action response
   useEffect(() => {
-    if (rerollFetcher.data?.success && rerollFetcher.data?.updatedData) {
-      const targetId = rerollFetcher.data.sectionId || selectedSectionId;
-      if (targetId) {
-        handleUpdateSectionData(targetId, rerollFetcher.data.updatedData);
+    if (rerollFetcher.data) {
+      if (rerollFetcher.data.success && rerollFetcher.data.updatedData) {
+        const targetId = rerollFetcher.data.sectionId || selectedSectionId;
+        if (targetId) {
+          handleUpdateSectionData(targetId, rerollFetcher.data.updatedData);
+          showToast("✨ AI section copy updated successfully!", "success");
+        }
+      } else if (rerollFetcher.data.error || rerollFetcher.data.success === false) {
+        showToast(
+          rerollFetcher.data.error || "AI was unable to rewrite this section. Please try rephrasing your prompt or click Re-roll again.",
+          "error"
+        );
       }
     }
   }, [rerollFetcher.data]);
 
   // Handle AI Theme Re-roll action response
   useEffect(() => {
-    if (themeFetcher.data?.success && themeFetcher.data?.updatedTheme) {
-      handleUpdateThemeTokens(themeFetcher.data.updatedTheme);
+    if (themeFetcher.data) {
+      if (themeFetcher.data.success && themeFetcher.data.updatedTheme) {
+        handleUpdateThemeTokens(themeFetcher.data.updatedTheme);
+        showToast("🎨 AI color palette generated & applied!", "success");
+      } else if (themeFetcher.data.error || themeFetcher.data.success === false) {
+        showToast(
+          themeFetcher.data.error || "AI was unable to generate a theme palette. Please try describing your desired colors (e.g. 'Emerald luxury with gold') and click Re-roll.",
+          "error"
+        );
+      }
     }
   }, [themeFetcher.data]);
 
@@ -715,6 +763,30 @@ export default function StudioEditor() {
           deviceMode={deviceMode}
         />
       </div>
+
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div className={`pm-editor-toast pm-editor-toast--${toast.type || "success"}`}>
+          <div className="pm-editor-toast-icon">
+            {toast.type === "error" ? (
+              <AlertTriangle size={16} color="#DC2626" />
+            ) : toast.type === "info" ? (
+              <Info size={16} color="#2563EB" />
+            ) : (
+              <CheckCircle2 size={16} color="#10B981" />
+            )}
+          </div>
+          <span className="pm-editor-toast-text">{toast.message}</span>
+          <button
+            type="button"
+            className="pm-editor-toast-dismiss"
+            onClick={() => setToast(null)}
+            title="Dismiss notification"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

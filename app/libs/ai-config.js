@@ -14,11 +14,14 @@ export const AI_MODELS = {
     TEMPERATURE: 0.7,
   },
   MICRO_EDITS: {
-    PRIMARY: "openrouter/free",
+    PRIMARY: "meta-llama/llama-3.3-70b-instruct:free",
     FALLBACKS: [
-      "google/gemma-4-26b-a4b-it:free",
-      "nvidia/nemotron-3-super-120b-a12b:free",
-      "nvidia/nemotron-3.5-lightning:free",
+      "google/gemini-2.0-flash-exp:free",
+      "google/gemini-2.0-flash-lite-preview-02-05:free",
+      "meta-llama/llama-3.1-8b-instruct:free",
+      "qwen/qwen-2.5-72b-instruct:free",
+      "mistralai/mistral-7b-instruct:free",
+      "openrouter/free",
     ],
     MAX_TOKENS: 2000,
     TEMPERATURE: 0.6,

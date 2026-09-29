@@ -564,42 +564,67 @@ export default function EditorSidebar({
  * 6-Token Color Picker Row with Swatch & Hex Text Input
  */
 function ColorPickerRow({ label, hint, tokenKey, value, onChange }) {
-  const [localVal, setLocalVal] = useState(typeof value === "string" ? value : "#0052FF");
+  const normalizeHex = (raw) => {
+    if (typeof raw !== "string") return null;
+    let val = raw.trim();
+    if (!val.startsWith("#")) val = "#" + val;
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) return val;
+    if (/^#[0-9A-Fa-f]{3}$/.test(val)) {
+      return `#${val[1]}${val[1]}${val[2]}${val[2]}${val[3]}${val[3]}`;
+    }
+    return null;
+  };
+
+  const currentValidHex = normalizeHex(value) || "#0052FF";
+  const [localText, setLocalText] = useState(typeof value === "string" ? value : currentValidHex);
 
   useEffect(() => {
-    if (typeof value === "string") setLocalVal(value);
+    if (typeof value === "string") {
+      setLocalText(value);
+    }
   }, [value]);
 
   const handleNativeColorChange = (e) => {
-    const val = e.target.value;
-    setLocalVal(val);
+    const val = e.target.value.toUpperCase();
+    setLocalText(val);
     if (onChange) onChange(tokenKey, val);
   };
 
-  const handleHexTextChange = (e) => {
-    const val = e.target.value;
-    setLocalVal(val);
-    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-      if (onChange) onChange(tokenKey, val);
+  const handleTextChange = (e) => {
+    const raw = e.target.value;
+    setLocalText(raw);
+
+    const cleaned = normalizeHex(raw);
+    if (cleaned && onChange) {
+      onChange(tokenKey, cleaned.toUpperCase());
     }
   };
 
-  const safeHex = typeof localVal === "string" && /^#[0-9A-Fa-f]{6}$/i.test(localVal)
-    ? localVal.toLowerCase()
-    : "#0052ff";
+  const handleBlur = () => {
+    const cleaned = normalizeHex(localText);
+    if (cleaned) {
+      const upper = cleaned.toUpperCase();
+      setLocalText(upper);
+      if (onChange) onChange(tokenKey, upper);
+    } else {
+      setLocalText(currentValidHex.toUpperCase());
+    }
+  };
+
+  const swatchHex = normalizeHex(localText) || currentValidHex;
 
   return (
     <div className="pm-color-row">
       <div className="pm-color-row-left">
         <label
           className="pm-color-swatch-wrapper"
-          style={{ background: safeHex }}
-          title="Click to pick color"
+          style={{ background: swatchHex }}
+          title="Click to open color picker"
         >
           <input
             type="color"
             className="pm-color-native-input"
-            value={safeHex}
+            value={swatchHex.toLowerCase()}
             onChange={handleNativeColorChange}
           />
         </label>
@@ -612,9 +637,11 @@ function ColorPickerRow({ label, hint, tokenKey, value, onChange }) {
       <input
         type="text"
         className="pm-color-hex-input"
-        value={localVal || ""}
+        value={localText}
         maxLength={7}
-        onChange={handleHexTextChange}
+        placeholder="#000000"
+        onChange={handleTextChange}
+        onBlur={handleBlur}
       />
     </div>
   );

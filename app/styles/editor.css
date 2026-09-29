@@ -1017,4 +1017,85 @@
   animation: pm-spin 0.9s linear infinite;
 }
 
+/* ==========================================================================
+   Floating Toast Notifications
+   ========================================================================== */
+.pm-editor-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.05);
+  animation: pm-toast-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 440px;
+}
+
+.pm-editor-toast--success {
+  background: #0F172A;
+  color: #FFFFFF;
+  border: 1px solid #334155;
+}
+
+.pm-editor-toast--error {
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1.5px solid #FCA5A5;
+}
+
+.pm-editor-toast--info {
+  background: #EFF6FF;
+  color: #1E40AF;
+  border: 1.5px solid #BFDBFE;
+}
+
+.pm-editor-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pm-editor-toast-text {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.pm-editor-toast-dismiss {
+  margin-left: 6px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.pm-editor-toast-dismiss:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+@keyframes pm-toast-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 

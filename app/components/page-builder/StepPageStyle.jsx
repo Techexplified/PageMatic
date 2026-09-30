@@ -104,25 +104,33 @@ export default function StepPageStyle({ pageStyle, setPageStyle, shopSettings })
           <div className="pm-card-radio">
             {pageStyle === "PROFESSIONAL" && <div className="pm-card-radio-dot" />}
           </div>
-          <div className="pm-style-preview-box" style={{ background: "#F1F5F9" }}>
+          <div
+            className="pm-style-preview-box"
+            style={{
+              background: "linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)",
+              border: "1px solid #94A3B8",
+              boxShadow: "inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 2px 6px rgba(15, 23, 42, 0.06)",
+            }}
+          >
             <div style={{ textAlign: "center", padding: "16px" }}>
-              <div style={{ fontSize: "18px", fontWeight: 800, color: "#0F172A", marginBottom: "4px" }}>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: "#0F172A", marginBottom: "4px", letterSpacing: "-0.01em" }}>
                 Build What Matters
               </div>
-              <div style={{ fontSize: "11px", color: "#475569" }}>Structured, trustworthy. Built for business.</div>
+              <div style={{ fontSize: "11px", color: "#475569", fontWeight: 500 }}>Structured, trustworthy. Built for business.</div>
               <div
                 style={{
-                  marginTop: "10px",
+                  marginTop: "8px",
                   display: "inline-block",
-                  padding: "4px 12px",
-                  background: "#1E293B",
-                  color: "#FFF",
+                  padding: "4px 14px",
+                  background: "#0F172A",
+                  color: "#FFFFFF",
                   fontSize: "10px",
                   borderRadius: "6px",
                   fontWeight: 700,
+                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.25)",
                 }}
               >
-                Get Started
+                Get Started →
               </div>
             </div>
           </div>

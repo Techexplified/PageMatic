@@ -1,4 +1,10 @@
 import TokenBadge from "../TokenBadge";
+import {
+  LandingPageIllustration,
+  HomePageIllustration,
+  ProductPageIllustration,
+  FaqPageIllustration,
+} from "./PageTypeIllustrations";
 
 export default function StepPageType({ pageType, setPageType, shopSettings }) {
   const types = [
@@ -6,28 +12,28 @@ export default function StepPageType({ pageType, setPageType, shopSettings }) {
       id: "LANDING",
       name: "Landing Page",
       badge: "HERO & CAMPAIGN",
-      emoji: "🚀",
+      illustration: <LandingPageIllustration />,
       desc: "Create high-converting landing pages to showcase your products and campaigns.",
     },
     {
       id: "HOME",
       name: "Home Page",
       badge: "STORE SHOWCASE",
-      emoji: "🏪",
+      illustration: <HomePageIllustration />,
       desc: "Design a stunning homepage to make a great first impression on your visitors.",
     },
     {
       id: "PRODUCT",
       name: "Product Page",
       badge: "PRODUCT HIGHLIGHT",
-      emoji: "👟",
+      illustration: <ProductPageIllustration />,
       desc: "Highlight your products with professional and persuasive product pages.",
     },
     {
       id: "FAQ",
       name: "FAQ Page",
       badge: "QUESTIONS & TRUST",
-      emoji: "💬",
+      illustration: <FaqPageIllustration />,
       desc: "Answer common questions, reduce support requests, and boost customer confidence.",
     },
   ];
@@ -60,10 +66,7 @@ export default function StepPageType({ pageType, setPageType, shopSettings }) {
               </div>
 
               <div className="pm-type-illustration-box">
-                <div style={{ textAlign: "center", padding: "10px" }}>
-                  <div style={{ fontSize: "28px", marginBottom: "4px" }}>{t.emoji}</div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: "#0052FF" }}>{t.badge}</div>
-                </div>
+                {t.illustration}
               </div>
 
               <div className="pm-credit-tag">

@@ -132,13 +132,13 @@ export const STYLE_THEME_TOKENS = {
     "--pm-font-heading": "Georgia, serif",
   },
   professional: {
-    "--pm-primary": "#1E293B",
+    "--pm-primary": "#0F172A",
     "--pm-accent": "#334155",
     "--pm-bg": "#FFFFFF",
     "--pm-surface": "#F1F5F9",
     "--pm-text-heading": "#0F172A",
     "--pm-text-body": "#475569",
-    "--pm-radius": "8px",
+    "--pm-radius": "6px",
     "--pm-font-heading": "Inter, sans-serif",
   },
 };

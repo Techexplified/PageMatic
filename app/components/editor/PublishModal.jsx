@@ -1,0 +1,477 @@
+import { useState } from "react";
+import {
+  X,
+  UploadCloud,
+  ExternalLink,
+  Copy,
+  Check,
+  Globe,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  EyeOff,
+  RefreshCw,
+} from "lucide-react";
+
+export default function PublishModal({
+  isOpen,
+  onClose,
+  page,
+  shop,
+  onConfirmPublish,
+  onConfirmUnpublish,
+  isPublishing,
+  isUnpublishing,
+  publishResult,
+}) {
+  const [copied, setCopied] = useState(false);
+  const [confirmingUnpublish, setConfirmingUnpublish] = useState(false);
+
+  if (!isOpen) return null;
+
+  const isAlreadyPublished = page?.status === "PUBLISHED";
+  const cleanShop = (shop || "").replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const handle = page?.handle || "my-page";
+  const storefrontUrl =
+    publishResult?.storefrontUrl || `https://${cleanShop}/pages/${handle}`;
+
+  const isBusy = isPublishing || isUnpublishing;
+
+  const handleCopyLink = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(storefrontUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleUnpublishClick = () => {
+    if (!confirmingUnpublish) {
+      setConfirmingUnpublish(true);
+    } else {
+      if (onConfirmUnpublish) onConfirmUnpublish();
+      setConfirmingUnpublish(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        background: "rgba(15, 23, 42, 0.6)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+        animation: "pmModalFadeIn 0.2s ease",
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isBusy) onClose();
+      }}
+    >
+      <div
+        style={{
+          background: "#FFFFFF",
+          borderRadius: "20px",
+          width: "100%",
+          maxWidth: "520px",
+          boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.2)",
+          border: "1px solid #E2E8F0",
+          overflow: "hidden",
+        }}
+      >
+        {/* Modal Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "20px 24px",
+            borderBottom: "1px solid #F1F5F9",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "10px",
+                background: isAlreadyPublished ? "#DCFCE7" : "#EFF6FF",
+                color: isAlreadyPublished ? "#16A34A" : "#0052FF",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {isAlreadyPublished ? <Globe size={18} /> : <UploadCloud size={18} />}
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#0B192C" }}>
+                {isAlreadyPublished ? "Manage Live Storefront Page" : "Publish to Storefront"}
+              </h3>
+              <p style={{ margin: 0, fontSize: "13px", color: "#64748B" }}>
+                {isAlreadyPublished
+                  ? "Page is currently active on your Shopify store."
+                  : "Deliver this page directly to your live Shopify store."}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isBusy}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#94A3B8",
+              cursor: isBusy ? "not-allowed" : "pointer",
+              padding: "6px",
+              borderRadius: "8px",
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div style={{ padding: "24px" }}>
+          {publishResult?.actionType === "UNPUBLISH" && publishResult?.success ? (
+            /* UNPUBLISHED SUCCESS STATE */
+            <div style={{ display: "flex", flexDirection: "column", gap: "18px", textAlign: "center" }}>
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  background: "#FEF3C7",
+                  color: "#D97706",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto",
+                }}
+              >
+                <EyeOff size={30} />
+              </div>
+
+              <div>
+                <h4 style={{ margin: "0 0 6px 0", fontSize: "18px", fontWeight: 700, color: "#0F172A" }}>
+                  Page Unpublished (Reverted to Draft)
+                </h4>
+                <p style={{ margin: 0, fontSize: "14px", color: "#64748B" }}>
+                  This page has been hidden from your public storefront. All your content remains safely saved in PageMatic.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: "12px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "#0052FF",
+                  color: "#FFFFFF",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  marginTop: "8px",
+                }}
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            /* MAIN VERIFICATION & ACTION STATE */
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {publishResult?.error && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                    padding: "12px 14px",
+                    background: "#FEF2F2",
+                    border: "1px solid #FECACA",
+                    borderRadius: "10px",
+                    color: "#DC2626",
+                    fontSize: "13.5px",
+                  }}
+                >
+                  <AlertCircle size={17} style={{ flexShrink: 0, marginTop: "2px" }} />
+                  <span>{publishResult.error}</span>
+                </div>
+              )}
+
+              {/* Destination URL & Status Box */}
+              <div
+                style={{
+                  background: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "12px",
+                  padding: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "#64748B" }}>
+                    Storefront Destination
+                  </span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      background: isAlreadyPublished ? "#DCFCE7" : "#FEF3C7",
+                      color: isAlreadyPublished ? "#15803D" : "#92400E",
+                      border: isAlreadyPublished ? "1px solid #BBF7D0" : "1px solid #FDE68A",
+                    }}
+                  >
+                    {isAlreadyPublished ? "PUBLISHED (LIVE)" : "DRAFT (UNPUBLISHED)"}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
+                    <Globe size={16} color="#0052FF" style={{ flexShrink: 0 }} />
+                    <span
+                      style={{
+                        fontSize: "13.5px",
+                        fontFamily: "monospace",
+                        color: "#0F172A",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {storefrontUrl}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      background: "#FFFFFF",
+                      border: "1px solid #CBD5E1",
+                      borderRadius: "6px",
+                      padding: "4px 8px",
+                      fontSize: "11.5px",
+                      fontWeight: 600,
+                      color: "#334155",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={12} color="#16A34A" />
+                        <span style={{ color: "#16A34A" }}>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Checklist details */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#334155" }}>
+                  <Check size={15} color="#16A34A" />
+                  <span>Mapped to <strong>/pages/{handle}</strong></span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#334155" }}>
+                  <Check size={15} color="#16A34A" />
+                  <span>Zero Theme Overwrite: Preserves active theme templates</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#334155" }}>
+                  <Check size={15} color="#16A34A" />
+                  <span>Full SEO pre-rendering with live JSON AST Metafield backup</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              {isAlreadyPublished ? (
+                /* PUBLISHED STATE CONTROLS */
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <a
+                      href={storefrontUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        flex: 1,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                        background: "#F8FAFC",
+                        color: "#0F172A",
+                        border: "1px solid #CBD5E1",
+                        borderRadius: "10px",
+                        padding: "11px",
+                        fontWeight: 600,
+                        fontSize: "13.5px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      <span>View Live Page</span>
+                      <ExternalLink size={14} />
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={onConfirmPublish}
+                      disabled={isBusy}
+                      style={{
+                        flex: 1.3,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                        background: "#0052FF",
+                        color: "#FFFFFF",
+                        border: "none",
+                        borderRadius: "10px",
+                        padding: "11px",
+                        fontWeight: 700,
+                        fontSize: "13.5px",
+                        cursor: isBusy ? "not-allowed" : "pointer",
+                        boxShadow: "0 4px 12px rgba(0, 82, 255, 0.2)",
+                      }}
+                    >
+                      {isPublishing ? (
+                        <>
+                          <Loader2 size={15} className="pm-spin-anim" />
+                          <span>Updating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw size={14} />
+                          <span>Update Live Page</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Unpublish Button */}
+                  <button
+                    type="button"
+                    onClick={handleUnpublishClick}
+                    disabled={isBusy}
+                    style={{
+                      width: "100%",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                      padding: "10px",
+                      borderRadius: "10px",
+                      border: confirmingUnpublish ? "1.5px solid #EF4444" : "1px solid #E2E8F0",
+                      background: confirmingUnpublish ? "#FEF2F2" : "#FFFFFF",
+                      color: confirmingUnpublish ? "#DC2626" : "#64748B",
+                      fontWeight: 600,
+                      fontSize: "13px",
+                      cursor: isBusy ? "not-allowed" : "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {isUnpublishing ? (
+                      <>
+                        <Loader2 size={14} className="pm-spin-anim" />
+                        <span>Unpublishing...</span>
+                      </>
+                    ) : confirmingUnpublish ? (
+                      <>
+                        <EyeOff size={14} />
+                        <span>Confirm Unpublish (Hide from Storefront)?</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={14} />
+                        <span>Unpublish (Revert to Draft)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                /* DRAFT STATE CONTROLS */
+                <div style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={isBusy}
+                    style={{
+                      flex: 1,
+                      padding: "12px",
+                      borderRadius: "10px",
+                      border: "1px solid #CBD5E1",
+                      background: "#FFFFFF",
+                      color: "#475569",
+                      fontWeight: 600,
+                      fontSize: "14px",
+                      cursor: isBusy ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={onConfirmPublish}
+                    disabled={isBusy}
+                    style={{
+                      flex: 2,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      padding: "12px",
+                      borderRadius: "10px",
+                      background: "#0052FF",
+                      color: "#FFFFFF",
+                      fontWeight: 700,
+                      fontSize: "14px",
+                      border: "none",
+                      cursor: isBusy ? "not-allowed" : "pointer",
+                      boxShadow: "0 4px 14px rgba(0, 82, 255, 0.25)",
+                    }}
+                  >
+                    {isPublishing ? (
+                      <>
+                        <Loader2 size={16} className="pm-spin-anim" />
+                        <span>Publishing to Shopify...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud size={16} />
+                        <span>Publish Page Now</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

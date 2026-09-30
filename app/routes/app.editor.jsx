@@ -3,6 +3,7 @@ import { useLoaderData, useFetcher, data } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { generateWithOpenRouter } from "../services/openrouter.server";
+import { publishPageToShopify, unpublishPageFromShopify } from "../services/page-publisher.server";
 import { AI_MODELS, SECTION_ALLOWED_KEYS, STYLE_THEME_TOKENS } from "../libs/ai-config";
 
 /**
@@ -28,6 +29,8 @@ function sanitizeSections(sections) {
 import EditorHeader from "../components/editor/EditorHeader";
 import EditorSidebar from "../components/editor/EditorSidebar";
 import EditorPreviewCanvas from "../components/editor/EditorPreviewCanvas";
+import PublishModal from "../components/editor/PublishModal";
+import PageSelectionScreen from "../components/editor/PageSelectionScreen";
 import { CheckCircle2, AlertTriangle, Info, X } from "lucide-react";
 import "../styles/editor.css";
 
@@ -50,9 +53,20 @@ export const loader = async ({ request }) => {
     });
   }
 
+  // Fetch all pages for the shop in case user needs to select one
+  const pages = shopSettings?.id
+    ? await db.page.findMany({
+        where: { shopId: shopSettings.id },
+        orderBy: { updatedAt: "desc" },
+      })
+    : [];
+
   return data({
     page,
+    pages,
     shopSettings,
+    shop: session.shop,
+    pageId,
   });
 };
 
@@ -60,7 +74,7 @@ export const loader = async ({ request }) => {
 // ACTION (Handles AI Micro-Edits & Page Saving to Database)
 // ============================================================================
 export const action = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
 
@@ -167,7 +181,131 @@ export const action = async ({ request }) => {
     });
   }
 
-  // 2. OPENROUTER AI MICRO-EDIT RE-ROLL (Sub-second Copy Optimization)
+  // 2. PUBLISH PAGE DIRECTLY TO SHOPIFY ONLINE STORE
+  if (intent === "PUBLISH_PAGE") {
+    const pageId = formData.get("pageId");
+    const title = formData.get("title") || "Untitled Page";
+    const contentJsonStr = formData.get("contentJson");
+
+    let contentJson = {};
+    try {
+      if (contentJsonStr) contentJson = JSON.parse(contentJsonStr);
+    } catch (e) {}
+
+    let targetPage = null;
+    if (pageId && !pageId.startsWith("temp")) {
+      targetPage = await db.page.findFirst({
+        where: { id: String(pageId), shopId: shopSettings.id },
+      });
+    }
+
+    if (targetPage) {
+      targetPage = await db.page.update({
+        where: { id: targetPage.id },
+        data: {
+          title,
+          contentJson,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      const baseHandle = title
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/[\s_-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "page";
+
+      let finalHandle = baseHandle;
+      let counter = 1;
+      while (true) {
+        const collision = await db.page.findUnique({
+          where: {
+            shopId_handle: {
+              shopId: shopSettings.id,
+              handle: finalHandle,
+            },
+          },
+        });
+        if (!collision) break;
+        counter++;
+        finalHandle = `${baseHandle}-${counter}`;
+      }
+
+      targetPage = await db.page.create({
+        data: {
+          shopId: shopSettings.id,
+          title,
+          handle: finalHandle,
+          pageType: "LANDING",
+          status: "DRAFT",
+          stylePreset: "minimal",
+          contentJson,
+        },
+      });
+    }
+
+    // Call Shopify GraphQL Publisher
+    const publishRes = await publishPageToShopify({
+      admin,
+      shop: session.shop,
+      page: targetPage,
+    });
+
+    if (!publishRes.success) {
+      return data({
+        success: false,
+        error: publishRes.error || "Failed to publish page to Shopify.",
+      });
+    }
+
+    return data({
+      success: true,
+      storefrontUrl: publishRes.storefrontUrl,
+      shopifyPageId: publishRes.shopifyPageId,
+      handle: publishRes.handle,
+      page: publishRes.page,
+      message: `Page published live to ${publishRes.storefrontUrl}`,
+    });
+  }
+
+  // 3. UNPUBLISH PAGE DIRECTLY FROM SHOPIFY ONLINE STORE
+  if (intent === "UNPUBLISH_PAGE") {
+    const pageId = formData.get("pageId");
+    if (!pageId) {
+      return data({ success: false, error: "Page ID is required to unpublish." });
+    }
+
+    const targetPage = await db.page.findFirst({
+      where: { id: String(pageId), shopId: shopSettings.id },
+    });
+
+    if (!targetPage) {
+      return data({ success: false, error: "Page not found." });
+    }
+
+    const unpublishRes = await unpublishPageFromShopify({
+      admin,
+      shop: session.shop,
+      page: targetPage,
+    });
+
+    if (!unpublishRes.success) {
+      return data({
+        success: false,
+        error: unpublishRes.error || "Failed to unpublish page.",
+      });
+    }
+
+    return data({
+      success: true,
+      actionType: "UNPUBLISH",
+      page: unpublishRes.page,
+      message: "Page has been unpublished and reverted to Draft.",
+    });
+  }
+
+  // 4. OPENROUTER AI MICRO-EDIT RE-ROLL (Sub-second Copy Optimization)
   if (intent === "REROLL_SECTION") {
     const sectionId = formData.get("sectionId");
     const sectionType = formData.get("sectionType");
@@ -373,16 +511,18 @@ Return the updated themeTokens JSON object:`;
 // STUDIO EDITOR MASTER COMPONENT
 // ============================================================================
 export default function StudioEditor() {
-  const { page: loaderPage, shopSettings } = useLoaderData();
+  const { page: loaderPage, pages = [], shopSettings, shop, pageId } = useLoaderData();
   const saveFetcher = useFetcher();
   const rerollFetcher = useFetcher();
   const themeFetcher = useFetcher();
+  const publishFetcher = useFetcher();
 
   // In-Memory / Loaded Page State
   const [page, setPage] = useState(loaderPage || null);
   const [pageTitle, setPageTitle] = useState("");
   const [deviceMode, setDeviceMode] = useState("desktop"); // desktop | tablet | mobile
   const [selectedSectionId, setSelectedSectionId] = useState(null);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [toast, setToast] = useState(null); // { id, message, type: 'success' | 'error' | 'info' }
   const isInitializedRef = useRef(false);
 
@@ -399,12 +539,8 @@ export default function StudioEditor() {
     }
   }, [toast]);
 
-  // Initialize from sessionStorage or loader on mount (ONLY ONCE)
+  // Initialize from loader on mount
   useEffect(() => {
-    if (isInitializedRef.current) return;
-    isInitializedRef.current = true;
-
-    // If loader provided page directly by ID from database, prioritize it
     if (loaderPage) {
       const defaultTokens = STYLE_THEME_TOKENS[loaderPage.stylePreset] || STYLE_THEME_TOKENS.minimal;
       const sanitized = {
@@ -417,32 +553,9 @@ export default function StudioEditor() {
       };
       setPage(sanitized);
       setPageTitle(loaderPage.title || "Untitled Page");
-      return;
-    }
-
-    if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem("pagematic_generated_page");
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed && parsed.contentJson) {
-            const defaultTokens = STYLE_THEME_TOKENS[parsed.stylePreset] || STYLE_THEME_TOKENS.minimal;
-            const sanitized = {
-              ...parsed,
-              contentJson: {
-                ...parsed.contentJson,
-                themeTokens: parsed.contentJson?.themeTokens || defaultTokens,
-                sections: sanitizeSections(parsed.contentJson?.sections),
-              },
-            };
-            setPage(sanitized);
-            setPageTitle(parsed.title || "Untitled Page");
-            return;
-          }
-        } catch (e) {
-          console.warn("Session storage parse warning:", e);
-        }
-      }
+    } else {
+      setPage(null);
+      setPageTitle("");
     }
   }, [loaderPage]);
 
@@ -501,6 +614,31 @@ export default function StudioEditor() {
       }
     }
   }, [themeFetcher.data]);
+
+  // Handle Publish & Unpublish action responses
+  useEffect(() => {
+    if (publishFetcher.data) {
+      if (publishFetcher.data.success) {
+        if (publishFetcher.data.actionType === "UNPUBLISH") {
+          showToast("⏸️ Page unpublished and reverted to Draft.", "info");
+          setPage((prev) => ({
+            ...prev,
+            status: "DRAFT",
+          }));
+        } else {
+          showToast("🎉 Page successfully published live to Shopify!", "success");
+          setPage((prev) => ({
+            ...prev,
+            status: "PUBLISHED",
+            shopifyPageId: publishFetcher.data.shopifyPageId || prev.shopifyPageId,
+            handle: publishFetcher.data.handle || prev.handle,
+          }));
+        }
+      } else if (publishFetcher.data.error) {
+        showToast(publishFetcher.data.error, "error");
+      }
+    }
+  }, [publishFetcher.data]);
 
   const contentJson = page?.contentJson || { sections: [], themeTokens: {} };
   const sections = contentJson.sections || [];
@@ -700,22 +838,39 @@ export default function StudioEditor() {
     }
   };
 
-  // 10. Publish (Reserved for Step 5)
+  // 10. Publish Modal Controls & Action
   const handlePublish = () => {
-    alert(`Ready for Step 5! Publishing "${pageTitle}" directly to your Shopify Online Store.`);
+    setIsPublishModalOpen(true);
   };
 
+  const handleConfirmPublish = () => {
+    const formData = new FormData();
+    formData.append("intent", "PUBLISH_PAGE");
+    formData.append("pageId", page?.id || "");
+    formData.append("title", pageTitle || "Untitled Page");
+    formData.append("handle", page?.handle || "");
+    formData.append("contentJson", JSON.stringify({ ...contentJson, title: pageTitle, sections, themeTokens }));
+    publishFetcher.submit(formData, { method: "POST" });
+  };
+
+  const handleConfirmUnpublish = () => {
+    const formData = new FormData();
+    formData.append("intent", "UNPUBLISH_PAGE");
+    formData.append("pageId", page?.id || "");
+    publishFetcher.submit(formData, { method: "POST" });
+  };
+
+  // If no page is loaded (e.g. visited /app/editor directly without pageId), render the Page Selection Screen
   if (!page) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "Inter, sans-serif" }}>
-        <p style={{ color: "#64748B" }}>Loading Studio Editor...</p>
-      </div>
-    );
+    return <PageSelectionScreen pages={pages} shopSettings={shopSettings} />;
   }
 
   const isSaving = saveFetcher.state === "submitting" || saveFetcher.state === "loading";
   const isReRolling = rerollFetcher.state === "submitting" || rerollFetcher.state === "loading";
   const isReRollingTheme = themeFetcher.state === "submitting" || themeFetcher.state === "loading";
+  const isBusy = publishFetcher.state === "submitting" || publishFetcher.state === "loading";
+  const isUnpublishing = isBusy && publishFetcher.formData?.get("intent") === "UNPUBLISH_PAGE";
+  const isPublishing = isBusy && !isUnpublishing;
 
   return (
     <div className="pm-editor-root">
@@ -763,6 +918,19 @@ export default function StudioEditor() {
           deviceMode={deviceMode}
         />
       </div>
+
+      {/* Publish / Unpublish Confirmation & Live Link Modal */}
+      <PublishModal
+        isOpen={isPublishModalOpen}
+        onClose={() => setIsPublishModalOpen(false)}
+        page={page}
+        shop={shop}
+        onConfirmPublish={handleConfirmPublish}
+        onConfirmUnpublish={handleConfirmUnpublish}
+        isPublishing={isPublishing}
+        isUnpublishing={isUnpublishing}
+        publishResult={publishFetcher.data}
+      />
 
       {/* Floating Toast Notification */}
       {toast && (

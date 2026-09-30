@@ -77,18 +77,6 @@ export const action = async ({ request }) => {
     return data({ success: true });
   }
 
-  if (intent === "toggle_status") {
-    const pageId = formData.get("pageId");
-    const nextStatus = formData.get("status"); // "PUBLISHED" or "DRAFT"
-    if (pageId && nextStatus) {
-      await db.page.updateMany({
-        where: { id: String(pageId), shopId: shopSettings.id },
-        data: { status: String(nextStatus) },
-      });
-    }
-    return data({ success: true });
-  }
-
   return data({ error: "Invalid action intent" }, { status: 400 });
 };
 
@@ -209,15 +197,6 @@ export default function Dashboard() {
       hour: "numeric",
       minute: "2-digit",
     });
-  };
-
-  // Handle publish toggle
-  const handleTogglePublish = (page) => {
-    const newStatus = page.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
-    fetcher.submit(
-      { intent: "toggle_status", pageId: page.id, status: newStatus },
-      { method: "post" }
-    );
   };
 
   // Handle delete

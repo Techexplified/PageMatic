@@ -1098,4 +1098,136 @@
   }
 }
 
+/* ==========================================================================
+   Page Selection Screen (Editor Landing)
+   ========================================================================== */
+
+.pm-page-select-screen {
+  font-family: var(--pm-editor-font, "Inter", sans-serif);
+  min-height: 100vh;
+  background-color: #F8FAFC;
+  background-image: linear-gradient(135deg, #F0F6FF 0%, #FAFBFD 50%, #EFF6FF 100%);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  color: #0B192C;
+  padding: 32px 0 100px;
+}
+
+.pm-page-select-container {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.pm-page-select-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-page-select-row {
+  display: flex;
+  align-items: center;
+  padding: 16px 28px;
+  border-bottom: 1px solid #F1F5F9;
+  text-decoration: none;
+  color: inherit;
+  gap: 16px;
+  background: #FFFFFF;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.pm-page-select-row:last-child {
+  border-bottom: none;
+}
+
+.pm-page-select-row:hover {
+  background-color: #F8FAFC;
+}
+
+.pm-page-select-row:hover .pm-page-select-arrow {
+  transform: translateX(4px);
+  color: #0052FF;
+}
+
+.pm-page-select-thumb-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pm-page-select-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+}
+
+.pm-page-select-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  background: #EFF6FF;
+  border: 1px solid #DBEAFE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0052FF;
+}
+
+.pm-page-select-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pm-page-select-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pm-page-select-title {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: #0B192C;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-page-select-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748B;
+}
+
+.pm-page-select-arrow-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  padding: 4px;
+}
+
+.pm-page-select-arrow {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+}
+
+
 

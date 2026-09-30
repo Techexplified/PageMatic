@@ -309,10 +309,26 @@ export const action = async ({ request }) => {
     return data(result);
   } catch (err) {
     console.error("[Action Error] Page generation failed:", err);
+    let friendlyError = "Our AI design engine is momentarily experiencing high demand. Please try generating your page again in a few moments.";
+    if (err.message && (err.message.includes("Page Credits") || err.message.includes("credits") || err.message.includes("insufficient"))) {
+      friendlyError = err.message;
+    } else if (
+      err.message &&
+      !err.message.includes("OpenRouter") &&
+      !err.message.includes("HTTP") &&
+      !err.message.includes("fetch") &&
+      !err.message.includes("500") &&
+      !err.message.includes("429") &&
+      !err.message.includes("JSON") &&
+      !err.message.includes("model")
+    ) {
+      friendlyError = err.message;
+    }
+
     return data(
       {
         success: false,
-        error: err.message || "Failed to generate page. Please try again.",
+        error: friendlyError,
       },
       { status: 400 }
     );

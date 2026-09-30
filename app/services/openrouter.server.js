@@ -87,8 +87,9 @@ export async function generateWithOpenRouter({
     }
   }
 
+  console.error(`[OpenRouter] All model attempts failed. Last error: ${lastError?.message || "Unknown error"}`);
   throw new Error(
-    `All OpenRouter models failed. Last error: ${lastError?.message || "Unknown error"}`
+    "Our AI design engine is momentarily experiencing high traffic. Please try again in a few moments."
   );
 }
 

@@ -43,6 +43,13 @@ export async function generateAndPersistPage({
     });
   }
 
+  // Check Page Credits
+  if ((settings.pageCredits ?? 0) < PAGE_COST_CREDITS) {
+    throw new Error(
+      `You have insufficient Page Credits (needed: ${PAGE_COST_CREDITS}, available: ${settings.pageCredits ?? 0}). Credits refresh on your monthly billing cycle.`
+    );
+  }
+
   // 2. STEP 1: Build Strategic Planning Prompt & Query LLM (Pass 1)
   console.log(`[PageGenerator] STEP 1: Synthesizing strategic plan & copywriting for: ${shop} (Type: ${pageType})`);
   const { systemPrompt, userPrompt, targetProduct, activeGridProducts } = buildStrategicPlanPrompt({
@@ -61,6 +68,16 @@ export async function generateAndPersistPage({
   const { data: planJson, modelUsed } = await generateWithOpenRouter({
     systemPrompt,
     userPrompt,
+  });
+
+  // Deduct Page Credits upon successful AI generation
+  const updatedSettings = await db.shopSettings.update({
+    where: { id: settings.id },
+    data: {
+      pageCredits: {
+        decrement: PAGE_COST_CREDITS,
+      },
+    },
   });
 
   // 3. STEP 2: Assemble Deterministic Page Schema with Image & Variant Bindings (Pass 2)
@@ -98,13 +115,13 @@ export async function generateAndPersistPage({
     createdAt: new Date().toISOString(),
   };
 
-  console.log(`[PageGenerator] 2-Step Page synthesized successfully (Handle: ${handle}) using ${modelUsed}`);
+  console.log(`[PageGenerator] 2-Step Page synthesized successfully (Handle: ${handle}) using ${modelUsed}. Remaining credits: ${updatedSettings.pageCredits}`);
 
   return {
     success: true,
     pageId: tempPage.id,
     page: tempPage,
-    remainingCredits: settings.pageCredits,
+    remainingCredits: updatedSettings.pageCredits,
     modelUsed,
   };
 }

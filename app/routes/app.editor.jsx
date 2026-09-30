@@ -4,7 +4,7 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { generateWithOpenRouter } from "../services/openrouter.server";
 import { publishPageToShopify, unpublishPageFromShopify } from "../services/page-publisher.server";
-import { AI_MODELS, SECTION_ALLOWED_KEYS, STYLE_THEME_TOKENS } from "../libs/ai-config";
+import { AI_MODELS, SECTION_ALLOWED_KEYS, STYLE_THEME_TOKENS, SECTION_COST_TOKENS } from "../libs/ai-config";
 import { embedRedirect } from "../utils/shopify-embed-nav.server.js";
 
 /**
@@ -318,6 +318,14 @@ export const action = async ({ request }) => {
     const currentDataStr = formData.get("currentData");
     const prompt = formData.get("prompt") || "Improve and polish this section copy for higher conversion.";
 
+    // Check token balance
+    if ((shopSettings?.iterationTokens ?? 0) < SECTION_COST_TOKENS) {
+      return data({
+        success: false,
+        error: `You have insufficient Silver Tokens for AI micro-edits (needed: ${SECTION_COST_TOKENS}, available: ${shopSettings?.iterationTokens ?? 0}). Tokens refresh on your monthly plan.`,
+      });
+    }
+
     let currentData = {};
     try {
       if (currentDataStr) currentData = JSON.parse(currentDataStr);
@@ -354,9 +362,19 @@ Return the updated section data JSON object:`;
       if (!aiData || Object.keys(aiData).length === 0) {
         return data({
           success: false,
-          error: "AI could not generate changes for this section. Please try rephrasing your prompt or click Re-roll again.",
+          error: "Our AI assistant was unable to rewrite this section. Please try rephrasing your prompt or click Re-roll again.",
         });
       }
+
+      // Deduct Silver Tokens upon successful micro-edit
+      const updatedSettings = await db.shopSettings.update({
+        where: { id: shopSettings.id },
+        data: {
+          iterationTokens: {
+            decrement: SECTION_COST_TOKENS,
+          },
+        },
+      });
 
       const updatedData = { ...currentData };
       const secType = (sectionType || "").toUpperCase();
@@ -407,13 +425,14 @@ Return the updated section data JSON object:`;
         success: true,
         sectionId,
         updatedData,
+        remainingTokens: updatedSettings.iterationTokens,
         modelUsed: res.modelUsed,
       });
     } catch (err) {
       console.error("[Editor Re-roll Error]:", err);
-      let userFriendly = "AI models are momentarily busy. Please click Re-roll again in a few seconds.";
-      if (err.message && !err.message.includes("fetch") && !err.message.includes("500") && !err.message.includes("429") && !err.message.includes("JSON")) {
-        userFriendly = `AI could not rewrite section: ${err.message}`;
+      let userFriendly = "Our AI micro-editor is momentarily busy. Please click Re-roll again in a few seconds.";
+      if (err.message && err.message.includes("Tokens")) {
+        userFriendly = err.message;
       }
       return data({
         success: false,
@@ -426,6 +445,14 @@ Return the updated section data JSON object:`;
   if (intent === "REROLL_THEME") {
     const currentThemeStr = formData.get("currentTheme");
     const prompt = formData.get("prompt") || "Generate a modern, high-converting aesthetic color palette.";
+
+    // Check token balance
+    if ((shopSettings?.iterationTokens ?? 0) < SECTION_COST_TOKENS) {
+      return data({
+        success: false,
+        error: `You have insufficient Silver Tokens for theme generation (needed: ${SECTION_COST_TOKENS}, available: ${shopSettings?.iterationTokens ?? 0}). Tokens refresh on your monthly plan.`,
+      });
+    }
 
     let currentTheme = {};
     try {
@@ -480,6 +507,16 @@ Return the updated themeTokens JSON object:`;
         });
       }
 
+      // Deduct Silver Tokens upon successful theme generation
+      const updatedSettings = await db.shopSettings.update({
+        where: { id: shopSettings.id },
+        data: {
+          iterationTokens: {
+            decrement: SECTION_COST_TOKENS,
+          },
+        },
+      });
+
       const updatedTheme = {
         ...currentTheme,
         ...(isValidHex(aiTokens["--pm-primary"]) ? { "--pm-primary": aiTokens["--pm-primary"].trim() } : {}),
@@ -495,13 +532,14 @@ Return the updated themeTokens JSON object:`;
       return data({
         success: true,
         updatedTheme,
+        remainingTokens: updatedSettings.iterationTokens,
         modelUsed: res.modelUsed,
       });
     } catch (err) {
       console.error("[Editor Theme Re-roll Error]:", err);
-      let userFriendly = "AI models are momentarily busy. Please click Re-roll again in a few seconds.";
-      if (err.message && !err.message.includes("fetch") && !err.message.includes("500") && !err.message.includes("429") && !err.message.includes("JSON")) {
-        userFriendly = `AI could not generate palette: ${err.message}`;
+      let userFriendly = "Our AI design engine could not generate a palette right now. Please try again in a few seconds.";
+      if (err.message && err.message.includes("Tokens")) {
+        userFriendly = err.message;
       }
       return data({
         success: false,
@@ -525,12 +563,30 @@ export default function StudioEditor() {
 
   // In-Memory / Loaded Page State
   const [page, setPage] = useState(loaderPage || null);
+  const [currentShopSettings, setCurrentShopSettings] = useState(shopSettings);
   const [pageTitle, setPageTitle] = useState("");
   const [deviceMode, setDeviceMode] = useState("desktop"); // desktop | tablet | mobile
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [toast, setToast] = useState(null); // { id, message, type: 'success' | 'error' | 'info' }
   const isInitializedRef = useRef(false);
+
+  // Sync token updates from re-roll and theme fetchers
+  useEffect(() => {
+    if (rerollFetcher.data?.remainingTokens !== undefined) {
+      setCurrentShopSettings((prev) =>
+        prev ? { ...prev, iterationTokens: rerollFetcher.data.remainingTokens } : prev
+      );
+    }
+  }, [rerollFetcher.data]);
+
+  useEffect(() => {
+    if (themeFetcher.data?.remainingTokens !== undefined) {
+      setCurrentShopSettings((prev) =>
+        prev ? { ...prev, iterationTokens: themeFetcher.data.remainingTokens } : prev
+      );
+    }
+  }, [themeFetcher.data]);
 
   const showToast = (message, type = "success") => {
     setToast({ id: Date.now(), message, type });
@@ -868,7 +924,7 @@ export default function StudioEditor() {
 
   // If no page is loaded (e.g. visited /app/editor directly without pageId), render the Page Selection Screen
   if (!page) {
-    return <PageSelectionScreen pages={pages} shopSettings={shopSettings} />;
+    return <PageSelectionScreen pages={pages} shopSettings={currentShopSettings} />;
   }
 
   const isSaving = saveFetcher.state === "submitting" || saveFetcher.state === "loading";

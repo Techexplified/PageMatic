@@ -15,7 +15,12 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
+  Lightbulb,
+  Star,
+  LayoutTemplate,
+  ArrowRight,
 } from "lucide-react";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { embedRedirect } from "../utils/shopify-embed-nav.server.js";
@@ -88,6 +93,7 @@ export const action = async ({ request }) => {
 
 export default function Dashboard() {
   const { shopSettings, pages } = useLoaderData();
+  const shopify = useAppBridge();
   const [searchQuery, setSearchQuery] = useState("");
   const [isTokenInfoOpen, setIsTokenInfoOpen] = useState(false);
   const fetcher = useFetcher();
@@ -552,6 +558,77 @@ export default function Dashboard() {
             )}
           </div>
         )}
+      </div>
+
+      {/* 4. Bottom Action Cards */}
+      <div className="pm-dash-bottom-grid">
+        {/* Card 1: Suggestions / Feedback */}
+        <div className="pm-dash-action-card">
+          <div className="pm-dash-action-top">
+            <div className="pm-dash-action-icon-wrap">
+              <Lightbulb size={22} />
+            </div>
+            <div className="pm-dash-action-info">
+              <h3 className="pm-dash-action-title">Have suggestions?</h3>
+              <p className="pm-dash-action-desc">
+                Have questions or ideas? Share your thoughts to help us improve.
+              </p>
+            </div>
+          </div>
+          <Link to="/app/suggestions" className="pm-dash-action-btn-outline">
+            <span>Give suggestion</span>
+            <ArrowRight size={15} />
+          </Link>
+        </div>
+
+        {/* Card 2: App Store Reviews (Hidden for pre-launch review; uncomment once live on Shopify App Store) */}
+        {/*
+        <div className="pm-dash-action-card">
+          <div className="pm-dash-action-top">
+            <div className="pm-dash-action-icon-wrap">
+              <Star size={22} style={{ fill: "currentColor" }} />
+            </div>
+            <div className="pm-dash-action-info">
+              <h3 className="pm-dash-action-title">Enjoying PageMatic?</h3>
+              <p className="pm-dash-action-desc">
+                Leave us a review on the Shopify App Store.
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://apps.shopify.com/pagematic#modal-show=write-review"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pm-dash-action-btn-outline"
+            onClick={() => {
+              if (shopify?.toast?.show) {
+                shopify.toast.show("Opening Shopify App Store...");
+              }
+            }}
+          >
+            <span>Leave a review</span>
+          </a>
+        </div>
+        */}
+
+        {/* Card 3: Build Your Own Page */}
+        <div className="pm-dash-action-card">
+          <div className="pm-dash-action-top">
+            <div className="pm-dash-action-icon-wrap">
+              <LayoutTemplate size={22} />
+            </div>
+            <div className="pm-dash-action-info">
+              <h3 className="pm-dash-action-title">Build your own page</h3>
+              <p className="pm-dash-action-desc">
+                Turn your ideas into beautiful Shopify pages with AI.
+              </p>
+            </div>
+          </div>
+          <Link to="/app/page-builder" className="pm-dash-action-btn-primary">
+            <span>Build a new page</span>
+            <ArrowRight size={15} />
+          </Link>
+        </div>
       </div>
     </div>
   </div>

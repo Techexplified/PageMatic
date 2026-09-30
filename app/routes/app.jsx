@@ -23,6 +23,7 @@ export default function App() {
           <s-link href="/app/dashboard">Dashboard</s-link>
           <s-link href="/app/page-builder">Page Builder</s-link>
           <s-link href="/app/editor">Studio Editor</s-link>
+          <s-link href="/app/suggestions">Suggestions</s-link>
         </s-app-nav>
       )}
       <Outlet />

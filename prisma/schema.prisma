@@ -34,14 +34,15 @@ model Session {
 }
 
 model ShopSettings {
-  id              String   @id @default(cuid())
-  shop            String   @unique // e.g. "mystore.myshopify.com"
-  pageCredits     Int      @default(20) // Monthly full-page credits
-  iterationTokens Int      @default(100) // Micro-edit tokens
-  isOnboarded     Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id              String       @id @default(cuid())
+  shop            String       @unique // e.g. "mystore.myshopify.com"
+  pageCredits     Int          @default(20) // Monthly full-page credits
+  iterationTokens Int          @default(100) // Micro-edit tokens
+  isOnboarded     Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
   pages           Page[]
+  suggestions     Suggestion[]
 }
 
 model Page {
@@ -70,5 +71,20 @@ model Page {
   updatedAt       DateTime @updatedAt
 
   @@unique([shopId, handle])
+  @@index([shopId])
+}
+
+model Suggestion {
+  id          String       @id @default(cuid())
+  shopId      String
+  shop        ShopSettings @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String
+  email       String?
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
   @@index([shopId])
 }

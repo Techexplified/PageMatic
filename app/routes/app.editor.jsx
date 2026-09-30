@@ -5,6 +5,7 @@ import db from "../db.server";
 import { generateWithOpenRouter } from "../services/openrouter.server";
 import { publishPageToShopify, unpublishPageFromShopify } from "../services/page-publisher.server";
 import { AI_MODELS, SECTION_ALLOWED_KEYS, STYLE_THEME_TOKENS } from "../libs/ai-config";
+import { embedRedirect } from "../utils/shopify-embed-nav.server.js";
 
 /**
  * Strips phantom or mismatched schema fields from section data based on section type
@@ -45,6 +46,11 @@ export const loader = async ({ request }) => {
   const shopSettings = await db.shopSettings.findUnique({
     where: { shop: session.shop },
   });
+
+  // Route Guard: If merchant has not completed onboarding, force redirection to onboarding flow
+  if (!shopSettings || !shopSettings.isOnboarded) {
+    throw embedRedirect("/app/onboarding", request);
+  }
 
   let page = null;
   if (pageId && !pageId.startsWith("temp")) {

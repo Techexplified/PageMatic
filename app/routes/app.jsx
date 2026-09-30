@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useRouteError, useLocation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
@@ -12,14 +12,19 @@ export const loader = async ({ request }) => {
 
 export default function App() {
   const { apiKey } = useLoaderData();
+  const location = useLocation();
+
+  const isOnboarding = location.pathname.includes("onboarding");
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <s-app-nav>
-        <s-link href="/app/dashboard">Dashboard</s-link>
-        <s-link href="/app/page-builder">Page Builder</s-link>
-        <s-link href="/app/editor">Studio Editor</s-link>
-      </s-app-nav>
+      {!isOnboarding && (
+        <s-app-nav>
+          <s-link href="/app/dashboard">Dashboard</s-link>
+          <s-link href="/app/page-builder">Page Builder</s-link>
+          <s-link href="/app/editor">Studio Editor</s-link>
+        </s-app-nav>
+      )}
       <Outlet />
     </AppProvider>
   );

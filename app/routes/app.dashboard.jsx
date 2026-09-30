@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { embedRedirect } from "../utils/shopify-embed-nav.server.js";
 import "../styles/dashboard.css";
 
 // Format page type label
@@ -43,6 +44,11 @@ export const loader = async ({ request }) => {
     shopSettings = await db.shopSettings.create({
       data: { shop },
     });
+  }
+
+  // Route Guard: If merchant has not completed onboarding, force redirection to onboarding flow
+  if (!shopSettings.isOnboarded) {
+    throw embedRedirect("/app/onboarding", request);
   }
 
   const pages = await db.page.findMany({

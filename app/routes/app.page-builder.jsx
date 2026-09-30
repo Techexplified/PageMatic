@@ -3,6 +3,7 @@ import { useLoaderData, useFetcher, data } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { generateAndPersistPage } from "../services/page-generator.server";
+import { embedRedirect } from "../utils/shopify-embed-nav.server.js";
 
 // Modular Page Builder Components
 import StepPageType from "../components/page-builder/StepPageType";
@@ -234,6 +235,11 @@ export const loader = async ({ request }) => {
     shopSettings = await db.shopSettings.create({
       data: { shop },
     });
+  }
+
+  // Route Guard: If merchant has not completed onboarding, force redirection to onboarding flow
+  if (!shopSettings.isOnboarded) {
+    throw embedRedirect("/app/onboarding", request);
   }
 
   return data({

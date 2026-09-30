@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useFetcher, redirect, data, useLoaderData } from "react-router";
+import { useFetcher, data, useLoaderData } from "react-router";
 import { ArrowRight, CheckCircle2, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
 import db from "../db.server";
 import { authenticate } from "../shopify.server";
 import { isAppEmbedEnabled } from "../libs/embed-check.server";
+import { embedRedirect } from "../utils/shopify-embed-nav.server.js";
 import PagematicLogoSvg from "../components/PagematicLogoSvg";
 import "../styles/onboarding.css";
 
@@ -22,10 +23,10 @@ export async function loader({ request }) {
     });
   }
 
-    // Removed redirect to allow repeated testing
-    // if (shopRecord.isOnboarded) {
-    //     return redirect("/app");
-    // }
+  // Route Guard: If user has completed onboarding, redirect to Dashboard
+  if (shopRecord.isOnboarded) {
+    throw embedRedirect("/app/dashboard", request);
+  }
 
   // deep linking
   const themeEditorUrl = `https://${shop}/admin/themes/current/editor?context=apps`;
@@ -64,7 +65,7 @@ export async function action({ request }) {
         create: { shop, isOnboarded: true },
       });
 
-      return redirect("/app");
+      return embedRedirect("/app/dashboard", request);
     } catch (error) {
       console.error("Error saving onboarding status:", error);
       return data({ error: "Failed to save onboarding status." }, { status: 500 });

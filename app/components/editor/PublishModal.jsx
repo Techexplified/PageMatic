@@ -359,7 +359,7 @@ export default function PublishModal({
                     >
                       {isPublishing ? (
                         <>
-                          <Loader2 size={15} className="pm-spin-anim" />
+                          <Loader2 size={15} className="pm-spin" />
                           <span>Updating...</span>
                         </>
                       ) : (
@@ -395,7 +395,7 @@ export default function PublishModal({
                   >
                     {isUnpublishing ? (
                       <>
-                        <Loader2 size={14} className="pm-spin-anim" />
+                        <Loader2 size={14} className="pm-spin" />
                         <span>Unpublishing...</span>
                       </>
                     ) : confirmingUnpublish ? (
@@ -456,7 +456,7 @@ export default function PublishModal({
                   >
                     {isPublishing ? (
                       <>
-                        <Loader2 size={16} className="pm-spin-anim" />
+                        <Loader2 size={16} className="pm-spin" />
                         <span>Publishing to Shopify...</span>
                       </>
                     ) : (

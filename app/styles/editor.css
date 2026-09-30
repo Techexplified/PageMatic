@@ -1013,8 +1013,11 @@
   }
 }
 
-.pm-spin {
+.pm-spin,
+.pm-spin-anim {
   animation: pm-spin 0.9s linear infinite;
+  display: inline-block;
+  transform-origin: center center;
 }
 
 /* ==========================================================================

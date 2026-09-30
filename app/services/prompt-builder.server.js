@@ -1039,21 +1039,6 @@ export function assemblePageFromPlan({
     });
   }
 
-  // 7. Standard Footer for all pages
-  sections.push({
-    id: `sec_footer_${now}_99`,
-    type: "FOOTER",
-    data: {
-      copyright: `© ${new Date().getFullYear()} ${brandName}. All rights reserved.`,
-      policyLinks: [
-        { label: "Refund Policy", url: "/policies/refund-policy" },
-        { label: "Privacy Policy", url: "/policies/privacy-policy" },
-        { label: "Terms of Service", url: "/policies/terms-of-service" },
-        { label: "Shipping Policy", url: "/policies/shipping-policy" },
-      ],
-    },
-  });
-
   return {
     pageType,
     stylePreset,

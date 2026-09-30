@@ -1,5 +1,187 @@
-/* Pagematic Storefront Sections Styles */
-:root {
-  --pm-bg-color: #ffffff;
-  --pm-text-color: #0f172a;
+/* ==========================================================================
+   PageMatic Storefront Sections CSS
+   Clean, scoped styling, full-width breakout, and theme integration
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. THEME PAGE CONTAINER BREAKOUT & RESET
+   Ensures PageMatic pages render edge-to-edge full width without being 
+   constrained by Shopify themes' narrow blog/article container wrappers.
+   -------------------------------------------------------------------------- */
+
+/* Target theme containers across Dawn, Refresh, Sense, Prestige, Impulse, etc. */
+.page-width:has(#pagematic-root),
+.page-width:has(.pagematic-page-container),
+.page-width--narrow:has(#pagematic-root),
+.page-width--narrow:has(.pagematic-page-container),
+.rte:has(#pagematic-root),
+.rte:has(.pagematic-page-container),
+.main-page-section:has(#pagematic-root),
+.main-page-section:has(.pagematic-page-container),
+.section-main-page:has(#pagematic-root),
+.section-main-page:has(.pagematic-page-container),
+.shopify-section:has(#pagematic-root),
+.shopify-section:has(.pagematic-page-container),
+.page-container:has(#pagematic-root),
+.page-container:has(.pagematic-page-container) {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Reset Shopify RTE standard text-element spacing inside PageMatic */
+.rte:has(.pagematic-page-container) {
+  letter-spacing: normal !important;
+}
+
+.rte:has(.pagematic-page-container) p,
+.rte:has(.pagematic-page-container) h1,
+.rte:has(.pagematic-page-container) h2,
+.rte:has(.pagematic-page-container) h3,
+.rte:has(.pagematic-page-container) h4,
+.rte:has(.pagematic-page-container) ul,
+.rte:has(.pagematic-page-container) ol {
+  margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   2. HIDE THEME'S DEFAULT REDUNDANT PAGE TITLE
+   Hides the hardcoded theme <h1> heading so PageMatic's custom hero & 
+   announcement headers take center stage cleanly.
+   -------------------------------------------------------------------------- */
+.main-page-title:has(~ .rte #pagematic-root),
+.main-page-title:has(~ .rte .pagematic-page-container),
+.main-page-title:has(~ #pagematic-root),
+.main-page-title:has(~ .pagematic-page-container),
+.page-title:has(~ .rte #pagematic-root),
+.page-title:has(~ .rte .pagematic-page-container),
+.page-title:has(~ #pagematic-root),
+.page-title:has(~ .pagematic-page-container),
+.main-page__title:has(~ * #pagematic-root),
+.main-page__title:has(~ * .pagematic-page-container),
+.section-header:has(~ .rte #pagematic-root),
+.section-header:has(~ .rte .pagematic-page-container),
+:has(> .rte #pagematic-root) > .main-page-title,
+:has(> .rte .pagematic-page-container) > .main-page-title,
+:has(> .rte #pagematic-root) > .page-title,
+:has(> .rte .pagematic-page-container) > .page-title,
+:has(> .rte #pagematic-root) > h1.title,
+:has(> .rte .pagematic-page-container) > h1.title,
+:has(> .rte #pagematic-root) > .section-header,
+:has(> .rte .pagematic-page-container) > .section-header {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. ROOT PAGEMATIC CONTAINER
+   -------------------------------------------------------------------------- */
+.pagematic-page-container {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  position: relative;
+  overflow-x: clip;
+}
+
+.pagematic-page-container *,
+.pagematic-page-container *::before,
+.pagematic-page-container *::after {
+  box-sizing: inherit;
+}
+
+/* --------------------------------------------------------------------------
+   4. ACTION BUTTONS & ANIMATIONS
+   -------------------------------------------------------------------------- */
+.pm-action-btn {
+  font-family: inherit;
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--pm-radius, 8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pm-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 82, 255, 0.25);
+  filter: brightness(1.05);
+}
+
+.pm-action-btn:active {
+  transform: translateY(0);
+}
+
+.pm-action-btn:disabled,
+.pm-action-btn.pm-btn-loading {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   5. FAQ ACCORDION STYLING
+   -------------------------------------------------------------------------- */
+.pm-faq-accordion {
+  cursor: pointer;
+}
+
+.pm-faq-accordion summary {
+  list-style: none;
+}
+
+.pm-faq-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.pm-faq-accordion[open] .pm-faq-arrow {
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
+}
+
+.pm-faq-accordion .pm-faq-arrow {
+  transition: transform 0.2s ease;
+}
+
+/* --------------------------------------------------------------------------
+   6. STICKY BUY BAR
+   -------------------------------------------------------------------------- */
+.pm-sticky-buy-bar {
+  animation: pmSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pmSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. MOBILE RESPONSIVENESS
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .pm-hero h1 {
+    font-size: 30px !important;
+  }
+  
+  .pm-hero p {
+    font-size: 15px !important;
+  }
+
+  .pm-sticky-buy-bar {
+    padding: 10px 16px !important;
+  }
 }

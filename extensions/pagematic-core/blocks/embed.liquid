@@ -1,14 +1,11 @@
 {% comment %}
-  Pagematic Storefront Engine
-  Only runs when the page has Pagematic content stored in metafields.
+  PageMatic Storefront Engine
+  Runs automatically on pages created with PageMatic to provide interactive Cart, Buy Now, and Accordion behaviors.
 {% endcomment %}
 
-{% if page.metafields.pagematic.content != blank %}
+{% if page.metafields.pagematic.content != blank or page.content contains 'pagematic-root' or page.content contains 'pagematic-page-container' %}
   {{ 'pagematic-sections.css' | asset_url | stylesheet_tag }}
-  
-  <div id="pagematic-root" data-page-id="{{ page.id }}">
-    {% render 'pagematic-renderer', content: page.metafields.pagematic.content.value %}
-  </div>
+  <script src="{{ 'pagematic-runtime.js' | asset_url }}" defer="defer"></script>
 {% endif %}
 
 {% schema %}

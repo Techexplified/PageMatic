@@ -1293,7 +1293,7 @@ function RenderFAQ({ data, type, theme }) {
 }
 
 /* ==========================================================================
-   17. QUICK HELP GRID (FAQ Page Action Cards)
+   17. QUICK HELP GRID (FAQ Page Action / Policy Showcase Cards)
    ========================================================================== */
 function RenderQuickHelpGrid({ data, theme }) {
   const cards = Array.isArray(data.cards) ? data.cards : [];
@@ -1302,9 +1302,8 @@ function RenderQuickHelpGrid({ data, theme }) {
     <section style={{ padding: "44px 32px", background: theme["--pm-surface"] || "#F8FAFC", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px", maxWidth: "860px", margin: "0 auto" }}>
         {cards.map((card, idx) => (
-          <a
+          <div
             key={idx}
-            href={card.link || "#"}
             style={{
               display: "flex",
               alignItems: "center",
@@ -1314,16 +1313,14 @@ function RenderQuickHelpGrid({ data, theme }) {
               border: "1px solid rgba(0,0,0,0.06)",
               borderRadius: theme["--pm-radius"] || "12px",
               boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-              textDecoration: "none",
               color: "inherit",
-              transition: "transform 0.15s ease",
             }}
           >
             <div style={{
               width: "42px",
               height: "42px",
               borderRadius: "10px",
-              background: "#EFF6FF",
+              background: "rgba(0, 82, 255, 0.1)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1333,14 +1330,14 @@ function RenderQuickHelpGrid({ data, theme }) {
               {idx === 0 ? <Truck size={20} /> : idx === 1 ? <RotateCcw size={20} /> : <Mail size={20} />}
             </div>
             <div>
-              <h4 style={{ fontSize: "14px", fontWeight: "700", color: "#0F172A", margin: "0 0 2px" }}>
+              <h4 style={{ fontSize: "14px", fontWeight: "700", color: theme["--pm-text-heading"] || "#0F172A", margin: "0 0 4px" }}>
                 {card.title}
               </h4>
-              <p style={{ fontSize: "12px", color: "#64748B", margin: 0 }}>
+              <p style={{ fontSize: "12.5px", color: theme["--pm-text-body"] || "#64748B", margin: 0, lineHeight: "1.45" }}>
                 {card.description}
               </p>
             </div>
-          </a>
+          </div>
         ))}
       </div>
     </section>
@@ -1353,6 +1350,12 @@ function RenderQuickHelpGrid({ data, theme }) {
 function RenderContactSupportCard({ data, theme }) {
   const heading = data.heading || "Still have questions?";
   const subtitle = data.subtitle || "Our customer support team is available 7 days a week.";
+  const btnSchema = data.buttonAction || {
+    label: data.buttonText || "Contact Support",
+    actionType: "LINK",
+    target: data.buttonLink || "/pages/contact",
+    style: "primary",
+  };
 
   return (
     <section style={{ padding: "60px 32px", background: theme["--pm-surface"] || "#F8FAFC", borderTop: "1px solid #E2E8F0", textAlign: "center" }}>
@@ -1363,7 +1366,7 @@ function RenderContactSupportCard({ data, theme }) {
         <p style={{ fontSize: "14.5px", color: theme["--pm-text-body"] || "#64748B", margin: "0 0 24px" }}>
           {subtitle}
         </p>
-        <ActionButton buttonSchema={data.buttonAction || { label: "Contact Support", actionType: "LINK", target: "/pages/contact", style: "primary" }} theme={theme} />
+        <ActionButton buttonSchema={btnSchema} defaultLabel="Contact Support" theme={theme} />
       </div>
     </section>
   );

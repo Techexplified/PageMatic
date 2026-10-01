@@ -948,15 +948,15 @@ function compileSection(section, theme) {
         <section id="${sectionId}" class="pm-section pm-quick-help" style="padding: 44px 32px; background: var(--pm-surface); border-bottom: 1px solid rgba(0,0,0,0.06);">
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; max-width: 860px; margin: 0 auto;">
             ${cards.map((card, idx) => `
-              <a href="${escapeHtml(card.link || "#")}" style="display: flex; align-items: center; gap: 14px; padding: 20px; background: var(--pm-bg); border: 1px solid rgba(0,0,0,0.06); border-radius: var(--pm-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.03); text-decoration: none; color: inherit; transition: transform 0.15s ease;">
-                <div style="width: 42px; height: 42px; border-radius: 10px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--pm-primary); font-size: 20px; flex-shrink: 0;">
+              <div style="display: flex; align-items: center; gap: 14px; padding: 20px; background: var(--pm-bg); border: 1px solid rgba(0,0,0,0.06); border-radius: var(--pm-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.03); color: inherit;">
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(0, 82, 255, 0.1); display: flex; align-items: center; justify-content: center; color: var(--pm-primary); font-size: 20px; flex-shrink: 0;">
                   ${idx === 0 ? "🚚" : idx === 1 ? "🔄" : "✉️"}
                 </div>
                 <div>
-                  <h4 style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 2px;">${escapeHtml(card.title || "")}</h4>
-                  <p style="font-size: 12px; color: #64748b; margin: 0;">${escapeHtml(card.description || "")}</p>
+                  <h4 style="font-size: 14px; font-weight: 700; color: var(--pm-text-heading); margin: 0 0 4px;">${escapeHtml(card.title || "")}</h4>
+                  <p style="font-size: 12.5px; color: var(--pm-text-body); margin: 0; line-height: 1.45;">${escapeHtml(card.description || "")}</p>
                 </div>
-              </a>
+              </div>
             `).join("")}
           </div>
         </section>
@@ -967,12 +967,18 @@ function compileSection(section, theme) {
     case "CONTACT_SUPPORT_CARD": {
       const heading = escapeHtml(data.heading || "Still have questions?");
       const subtitle = escapeHtml(data.subtitle || "Our customer support team is available 7 days a week.");
+      const btn = data.buttonAction || {
+        label: data.buttonText || "Contact Support",
+        actionType: "LINK",
+        target: data.buttonLink || "/pages/contact",
+        style: "primary",
+      };
       return `
         <section id="${sectionId}" class="pm-section pm-contact-support" style="padding: 60px 32px; background: var(--pm-surface); border-top: 1px solid #e2e8f0; text-align: center;">
           <div style="max-width: 560px; margin: 0 auto;">
             <h3 style="font-size: 24px; font-weight: 800; color: var(--pm-text-heading); margin: 0 0 10px;">${heading}</h3>
             <p style="font-size: 14.5px; color: var(--pm-text-body); margin: 0 0 24px;">${subtitle}</p>
-            ${renderButtonHtml(data.buttonAction || { label: "Contact Support", actionType: "LINK", target: "/pages/contact", style: "primary" }, "Contact Support", "primary")}
+            ${renderButtonHtml(btn, "Contact Support", "primary")}
           </div>
         </section>
       `;

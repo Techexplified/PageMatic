@@ -350,11 +350,26 @@ export default function EditorInspectorPanel({
         )}
 
         {/* General Button Action */}
-        {Boolean(isFieldAllowed("buttonAction") && data.buttonAction && typeof data.buttonAction === "object") && (
+        {Boolean(isFieldAllowed("buttonAction") && (data.buttonAction || secType === "CONTACT_SUPPORT_CARD" || secType === "STICKY_BUY_BAR")) && (
           <ButtonInspectorBox
-            title="Button Action"
-            buttonSchema={data.buttonAction}
-            onChange={(field, val) => handleButtonSchemaChange("buttonAction", field, val)}
+            title={secType === "CONTACT_SUPPORT_CARD" ? "Contact Button Action" : "Button Action"}
+            buttonSchema={
+              data.buttonAction || {
+                label: data.buttonText || "Contact Support",
+                actionType: "LINK",
+                target: data.buttonLink || "/pages/contact",
+                style: "primary",
+              }
+            }
+            onChange={(field, val) => {
+              const currentBtn = data.buttonAction || {
+                label: data.buttonText || "Contact Support",
+                actionType: "LINK",
+                target: data.buttonLink || "/pages/contact",
+                style: "primary",
+              };
+              handleButtonSchemaChange("buttonAction", field, val);
+            }}
           />
         )}
 

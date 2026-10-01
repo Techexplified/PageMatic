@@ -954,11 +954,29 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
         />
       )}
 
-      {Boolean(isFieldAllowed("buttonAction") && data.buttonAction && typeof data.buttonAction === "object") && (
+      {Boolean(isFieldAllowed("buttonAction") && (data.buttonAction || secType === "CONTACT_SUPPORT_CARD" || secType === "STICKY_BUY_BAR")) && (
         <InlineButtonInspector
-          title="Button Action"
-          buttonSchema={data.buttonAction}
-          onChange={(field, val) => handleButtonSchemaChange("buttonAction", field, val)}
+          title={secType === "CONTACT_SUPPORT_CARD" ? "Contact Button Action" : "Button Action"}
+          buttonSchema={
+            data.buttonAction || {
+              label: data.buttonText || "Contact Support",
+              actionType: "LINK",
+              target: data.buttonLink || "/pages/contact",
+              style: "primary",
+            }
+          }
+          onChange={(field, val) => {
+            const currentBtn = data.buttonAction || {
+              label: data.buttonText || "Contact Support",
+              actionType: "LINK",
+              target: data.buttonLink || "/pages/contact",
+              style: "primary",
+            };
+            handleFieldChange("buttonAction", {
+              ...currentBtn,
+              [field]: val,
+            });
+          }}
         />
       )}
 
@@ -1339,7 +1357,7 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
       {isFieldAllowed("cards") && (
         <div className="pm-form-field">
           <label className="pm-form-field-label">
-            Help Cards ({Array.isArray(data.cards) ? data.cards.length : 0})
+            Policy & Help Cards ({Array.isArray(data.cards) ? data.cards.length : 0})
           </label>
           {Array.isArray(data.cards) && data.cards.map((card, idx) => (
             <div key={idx} className="pm-repeatable-card" style={{ marginBottom: "12px" }}>
@@ -1352,45 +1370,40 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
                     const newCards = data.cards.filter((_, i) => i !== idx);
                     handleFieldChange("cards", newCards);
                   }}
+                  title="Remove card"
                 >
                   <Trash2 size={12} />
                 </button>
               </div>
 
-              <input
-                type="text"
-                className="pm-form-input"
-                placeholder="Card Title"
-                style={{ marginBottom: "6px" }}
-                value={card.title || ""}
-                onChange={(e) => {
-                  const newCards = [...data.cards];
-                  newCards[idx] = { ...newCards[idx], title: e.target.value };
-                  handleFieldChange("cards", newCards);
-                }}
-              />
-              <textarea
-                className="pm-form-textarea"
-                placeholder="Card Description"
-                style={{ marginBottom: "6px" }}
-                value={card.description || ""}
-                onChange={(e) => {
-                  const newCards = [...data.cards];
-                  newCards[idx] = { ...newCards[idx], description: e.target.value };
-                  handleFieldChange("cards", newCards);
-                }}
-              />
-              <input
-                type="text"
-                className="pm-form-input"
-                placeholder="Destination Link (/pages/contact)"
-                value={card.link || ""}
-                onChange={(e) => {
-                  const newCards = [...data.cards];
-                  newCards[idx] = { ...newCards[idx], link: e.target.value };
-                  handleFieldChange("cards", newCards);
-                }}
-              />
+              <div style={{ marginBottom: "6px" }}>
+                <label className="pm-sub-label">Card Title</label>
+                <input
+                  type="text"
+                  className="pm-form-input"
+                  placeholder="Card Title (e.g. 30-Day Money Back)"
+                  value={card.title || ""}
+                  onChange={(e) => {
+                    const newCards = [...data.cards];
+                    newCards[idx] = { ...newCards[idx], title: e.target.value };
+                    handleFieldChange("cards", newCards);
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="pm-sub-label">Card Description</label>
+                <textarea
+                  className="pm-form-textarea"
+                  placeholder="Card Description (e.g. Free returns within 30 days of purchase)"
+                  value={card.description || ""}
+                  onChange={(e) => {
+                    const newCards = [...data.cards];
+                    newCards[idx] = { ...newCards[idx], description: e.target.value };
+                    handleFieldChange("cards", newCards);
+                  }}
+                />
+              </div>
             </div>
           ))}
 
@@ -1416,7 +1429,7 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
             onClick={() => {
               const newCards = [
                 ...(Array.isArray(data.cards) ? data.cards : []),
-                { title: "New Card", description: "Help description", link: "/pages/contact" },
+                { title: "New Policy / Feature", description: "Details and policy summary" },
               ];
               handleFieldChange("cards", newCards);
             }}

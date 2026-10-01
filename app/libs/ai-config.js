@@ -189,7 +189,7 @@ export const SECTION_ALLOWED_KEYS = {
   FAQ_GROUP_RETURNS: ["heading", "groupTitle", "items"],
   FAQ_GROUP_GENERAL: ["heading", "groupTitle", "items"],
   QUICK_HELP_GRID: ["cards"],
-  CONTACT_SUPPORT_CARD: ["heading", "subtitle", "buttonText"],
+  CONTACT_SUPPORT_CARD: ["heading", "subtitle", "buttonAction", "buttonText", "buttonLink"],
   STICKY_BUY_BAR: ["title", "price", "imageUrl", "buttonAction"],
   FINAL_CTA: ["heading", "subheading", "buttonPrimary"],
   NEWSLETTER_SIGNUP: ["heading", "subheading", "buttonText"],

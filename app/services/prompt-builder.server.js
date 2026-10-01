@@ -975,21 +975,21 @@ export function assemblePageFromPlan({
       },
     });
 
-    // 2. QUICK HELP GRID (3 Action Cards)
+    // 2. QUICK HELP GRID (3 Policy / Highlight Cards)
     sections.push({
       id: `sec_quick_help_${now}_1`,
       type: "QUICK_HELP_GRID",
       data: {
         cards: Array.isArray(plan.quickHelp?.cards) && plan.quickHelp.cards.length > 0
           ? plan.quickHelp.cards.map((c, i) => ({
-              ...c,
-              link: i === 2 ? `mailto:${contactEmail}` : contactUrl,
+              title: c.title || "Policy Highlight",
+              description: c.description || "",
               icon: i === 0 ? "truck" : i === 1 ? "refresh" : "mail",
             }))
           : [
-              { title: "Track Your Order", description: "Real-time courier updates & dispatch info", icon: "truck", link: contactUrl },
-              { title: "Start a Return", description: "30-day hassle-free exchanges & returns", icon: "refresh", link: contactUrl },
-              { title: "Contact Support", description: "Our expert team responds in under 2 hours", icon: "mail", link: `mailto:${contactEmail}` },
+              { title: "Track Your Order", description: "Real-time courier updates & dispatch info", icon: "truck" },
+              { title: "Start a Return", description: "30-day hassle-free exchanges & returns", icon: "refresh" },
+              { title: "Dedicated Support", description: "Our expert team responds in under 2 hours", icon: "mail" },
             ],
       },
     });

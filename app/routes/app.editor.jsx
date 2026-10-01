@@ -313,6 +313,7 @@ export const action = async ({ request }) => {
 
   // 4. OPENROUTER AI MICRO-EDIT RE-ROLL (Sub-second Copy Optimization)
   if (intent === "REROLL_SECTION") {
+    const pageId = formData.get("pageId");
     const sectionId = formData.get("sectionId");
     const sectionType = formData.get("sectionType");
     const currentDataStr = formData.get("currentData");
@@ -421,6 +422,30 @@ Return the updated section data JSON object:`;
         }
       }
 
+      // Persist to database if pageId provided to keep DB in sync
+      if (pageId) {
+        try {
+          const existingPage = await db.page.findUnique({ where: { id: pageId } });
+          if (existingPage) {
+            const rawContent = existingPage.contentJson;
+            const existingContent = typeof rawContent === "object" && rawContent !== null ? rawContent : (typeof rawContent === "string" ? JSON.parse(rawContent || "{}") : {});
+            const existingSections = Array.isArray(existingContent.sections) ? existingContent.sections : [];
+            const updatedSections = existingSections.map((s) => s.id === sectionId ? { ...s, data: updatedData } : s);
+            await db.page.update({
+              where: { id: pageId },
+              data: {
+                contentJson: {
+                  ...existingContent,
+                  sections: updatedSections,
+                },
+              },
+            });
+          }
+        } catch (dbErr) {
+          console.warn("[Editor Section Re-roll DB Sync Warn]:", dbErr);
+        }
+      }
+
       return data({
         success: true,
         sectionId,
@@ -443,6 +468,7 @@ Return the updated section data JSON object:`;
 
   // 3. OPENROUTER AI THEME & PALETTE RE-ROLL
   if (intent === "REROLL_THEME") {
+    const pageId = formData.get("pageId");
     const currentThemeStr = formData.get("currentTheme");
     const prompt = formData.get("prompt") || "Generate a modern, high-converting aesthetic color palette.";
 
@@ -529,6 +555,28 @@ Return the updated themeTokens JSON object:`;
         ...(typeof aiTokens["--pm-font-heading"] === "string" && aiTokens["--pm-font-heading"].trim() ? { "--pm-font-heading": aiTokens["--pm-font-heading"].trim() } : {}),
       };
 
+      // Persist to database if pageId provided to keep DB in sync
+      if (pageId) {
+        try {
+          const existingPage = await db.page.findUnique({ where: { id: pageId } });
+          if (existingPage) {
+            const rawContent = existingPage.contentJson;
+            const existingContent = typeof rawContent === "object" && rawContent !== null ? rawContent : (typeof rawContent === "string" ? JSON.parse(rawContent || "{}") : {});
+            await db.page.update({
+              where: { id: pageId },
+              data: {
+                contentJson: {
+                  ...existingContent,
+                  themeTokens: updatedTheme,
+                },
+              },
+            });
+          }
+        } catch (dbErr) {
+          console.warn("[Editor Theme Re-roll DB Sync Warn]:", dbErr);
+        }
+      }
+
       return data({
         success: true,
         updatedTheme,
@@ -569,7 +617,7 @@ export default function StudioEditor() {
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [toast, setToast] = useState(null); // { id, message, type: 'success' | 'error' | 'info' }
-  const isInitializedRef = useRef(false);
+  const loadedPageIdRef = useRef(null);
 
   // Sync token updates from re-roll and theme fetchers
   useEffect(() => {
@@ -601,21 +649,52 @@ export default function StudioEditor() {
     }
   }, [toast]);
 
-  // Initialize from loader on mount
+  // Initialize from loader on mount or when switching to a different pageId
   useEffect(() => {
     if (loaderPage) {
-      const defaultTokens = STYLE_THEME_TOKENS[loaderPage.stylePreset] || STYLE_THEME_TOKENS.minimal;
-      const sanitized = {
-        ...loaderPage,
-        contentJson: {
-          ...loaderPage.contentJson,
-          themeTokens: loaderPage.contentJson?.themeTokens || defaultTokens,
-          sections: sanitizeSections(loaderPage.contentJson?.sections),
-        },
-      };
-      setPage(sanitized);
-      setPageTitle(loaderPage.title || "Untitled Page");
-    } else {
+      if (loadedPageIdRef.current !== loaderPage.id) {
+        loadedPageIdRef.current = loaderPage.id;
+        const defaultTokens = STYLE_THEME_TOKENS[loaderPage.stylePreset] || STYLE_THEME_TOKENS.minimal;
+        const sanitized = {
+          ...loaderPage,
+          contentJson: {
+            ...loaderPage.contentJson,
+            themeTokens: loaderPage.contentJson?.themeTokens || defaultTokens,
+            sections: sanitizeSections(loaderPage.contentJson?.sections),
+          },
+        };
+        setPage(sanitized);
+        setPageTitle(loaderPage.title || "Untitled Page");
+      }
+    } else if (!loadedPageIdRef.current && typeof window !== "undefined") {
+      try {
+        const cached =
+          sessionStorage.getItem("pagematic_generated_page") ||
+          localStorage.getItem("pagematic_generated_page");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.contentJson) {
+            loadedPageIdRef.current = parsed.id || "cached";
+            const defaultTokens =
+              STYLE_THEME_TOKENS[parsed.stylePreset] || STYLE_THEME_TOKENS.minimal;
+            setPage({
+              ...parsed,
+              contentJson: {
+                ...parsed.contentJson,
+                themeTokens: parsed.contentJson?.themeTokens || defaultTokens,
+                sections: sanitizeSections(parsed.contentJson?.sections),
+              },
+            });
+            setPageTitle(parsed.title || "Untitled Page");
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Storage parse error in editor:", e);
+      }
+      setPage(null);
+      setPageTitle("");
+    } else if (!loaderPage && !loadedPageIdRef.current) {
       setPage(null);
       setPageTitle("");
     }
@@ -626,6 +705,7 @@ export default function StudioEditor() {
     if (saveFetcher.data) {
       if (saveFetcher.data.success && saveFetcher.data.savedPage) {
         const persisted = saveFetcher.data.savedPage;
+        loadedPageIdRef.current = persisted.id;
         setPage(persisted);
         if (typeof window !== "undefined") {
           sessionStorage.setItem("pagematic_generated_page", JSON.stringify(persisted));
@@ -749,13 +829,39 @@ export default function StudioEditor() {
 
   // 4. Update Section Data (from Sidebar inline fields)
   const handleUpdateSectionData = (sectionId, newData) => {
-    const updated = sections.map((sec) => {
-      if (sec.id === sectionId) {
-        return { ...sec, data: newData };
+    setPage((prevPage) => {
+      const prevContent = prevPage?.contentJson || { sections: [], themeTokens: {} };
+      const prevSections = prevContent.sections || [];
+      const updated = prevSections.map((sec) => {
+        if (sec.id === sectionId) {
+          return { ...sec, data: newData };
+        }
+        return sec;
+      });
+      const cleanSections = sanitizeSections(updated);
+      const updatedContent = {
+        ...prevContent,
+        sections: cleanSections,
+      };
+      const updatedPage = {
+        ...prevPage,
+        title: pageTitle,
+        contentJson: updatedContent,
+      };
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("pagematic_generated_page", JSON.stringify(updatedPage));
+        localStorage.setItem("pagematic_live_preview", JSON.stringify(updatedPage));
+
+        if ("BroadcastChannel" in window) {
+          try {
+            const bc = new BroadcastChannel("pagematic_preview_sync");
+            bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: updatedPage });
+            setTimeout(() => bc.close(), 100);
+          } catch (e) {}
+        }
       }
-      return sec;
+      return updatedPage;
     });
-    updateSectionsInState(updated);
   };
 
   // 5. Trigger AI Section Re-Roll
@@ -766,35 +872,39 @@ export default function StudioEditor() {
     formData.append("sectionType", section.type);
     formData.append("currentData", JSON.stringify(section.data || {}));
     formData.append("prompt", prompt);
+    if (page?.id) formData.append("pageId", page.id);
 
     rerollFetcher.submit(formData, { method: "POST" });
   };
 
   // 6. Update Theme Tokens (Colors & Styling)
   const handleUpdateThemeTokens = (newThemeTokens) => {
-    const updatedContent = {
-      ...contentJson,
-      themeTokens: newThemeTokens,
-    };
-    const updatedPage = {
-      ...page,
-      title: pageTitle,
-      contentJson: updatedContent,
-    };
-    setPage(updatedPage);
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("pagematic_generated_page", JSON.stringify(updatedPage));
-      localStorage.setItem("pagematic_live_preview", JSON.stringify(updatedPage));
+    setPage((prevPage) => {
+      const prevContent = prevPage?.contentJson || { sections: [], themeTokens: {} };
+      const updatedContent = {
+        ...prevContent,
+        themeTokens: newThemeTokens,
+      };
+      const updatedPage = {
+        ...prevPage,
+        title: pageTitle,
+        contentJson: updatedContent,
+      };
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("pagematic_generated_page", JSON.stringify(updatedPage));
+        localStorage.setItem("pagematic_live_preview", JSON.stringify(updatedPage));
 
-      // Broadcast live changes to any open preview tab
-      if ("BroadcastChannel" in window) {
-        try {
-          const bc = new BroadcastChannel("pagematic_preview_sync");
-          bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: updatedPage });
-          setTimeout(() => bc.close(), 100);
-        } catch (e) {}
+        // Broadcast live changes to any open preview tab
+        if ("BroadcastChannel" in window) {
+          try {
+            const bc = new BroadcastChannel("pagematic_preview_sync");
+            bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: updatedPage });
+            setTimeout(() => bc.close(), 100);
+          } catch (e) {}
+        }
       }
-    }
+      return updatedPage;
+    });
   };
 
   // 7. Trigger AI Global Theme Re-Roll
@@ -803,6 +913,7 @@ export default function StudioEditor() {
     formData.append("intent", "REROLL_THEME");
     formData.append("currentTheme", JSON.stringify(themeTokens));
     formData.append("prompt", prompt);
+    if (page?.id) formData.append("pageId", page.id);
 
     themeFetcher.submit(formData, { method: "POST" });
   };
@@ -824,30 +935,32 @@ export default function StudioEditor() {
 
   // Helper to commit state & sync to storage + BroadcastChannel
   const updateSectionsInState = (newSections) => {
-    const cleanSections = sanitizeSections(newSections);
-    const updatedContent = {
-      ...contentJson,
-      sections: cleanSections,
-    };
-    const updatedPage = {
-      ...page,
-      title: pageTitle,
-      contentJson: updatedContent,
-    };
-    setPage(updatedPage);
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("pagematic_generated_page", JSON.stringify(updatedPage));
-      localStorage.setItem("pagematic_live_preview", JSON.stringify(updatedPage));
+    setPage((prevPage) => {
+      const prevContent = prevPage?.contentJson || { sections: [], themeTokens: {} };
+      const cleanSections = sanitizeSections(newSections);
+      const updatedContent = {
+        ...prevContent,
+        sections: cleanSections,
+      };
+      const updatedPage = {
+        ...prevPage,
+        title: pageTitle,
+        contentJson: updatedContent,
+      };
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("pagematic_generated_page", JSON.stringify(updatedPage));
+        localStorage.setItem("pagematic_live_preview", JSON.stringify(updatedPage));
 
-      // Broadcast live changes to any open preview tab
-      if ("BroadcastChannel" in window) {
-        try {
-          const bc = new BroadcastChannel("pagematic_preview_sync");
-          bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: updatedPage });
-          setTimeout(() => bc.close(), 100);
-        } catch (e) {}
+        if ("BroadcastChannel" in window) {
+          try {
+            const bc = new BroadcastChannel("pagematic_preview_sync");
+            bc.postMessage({ type: "PAGEMATIC_PREVIEW_UPDATE", page: updatedPage });
+            setTimeout(() => bc.close(), 100);
+          } catch (e) {}
+        }
       }
-    }
+      return updatedPage;
+    });
   };
 
   // 8. Save Draft Page to PostgreSQL Database

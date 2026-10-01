@@ -99,28 +99,30 @@ export async function generateAndPersistPage({
   const finalTitle = pageTitle || sanitizedContent.title || "Untitled Page";
   const handle = await generateUniqueHandle(settings.id, finalTitle);
 
-  // 5. In-Memory Page Construction (Draft)
-  const tempPage = {
-    id: `temp_${Date.now()}`,
-    shopId: settings.id,
-    title: finalTitle,
-    handle: handle,
-    pageType: pageType,
-    stylePreset: stylePreset,
-    targetProductId: targetProduct?.id || selectedProduct?.id || null,
-    seoTitle: sanitizedContent.seoTitle || sanitizedContent.title || finalTitle,
-    seoDescription: sanitizedContent.seoDescription || null,
-    contentJson: sanitizedContent,
-    status: "DRAFT",
-    createdAt: new Date().toISOString(),
-  };
+  // 5. Persist Page Record to Database (Draft)
+  const savedPage = await db.page.create({
+    data: {
+      shopId: settings.id,
+      title: finalTitle,
+      handle: handle,
+      pageType: pageType,
+      stylePreset: stylePreset,
+      targetProductId: targetProduct?.id || selectedProduct?.id || null,
+      seoTitle: sanitizedContent.seoTitle || sanitizedContent.title || finalTitle,
+      seoDescription: sanitizedContent.seoDescription || null,
+      contentJson: sanitizedContent,
+      status: "DRAFT",
+    },
+  });
 
-  console.log(`[PageGenerator] 2-Step Page synthesized successfully (Handle: ${handle}) using ${modelUsed}. Remaining credits: ${updatedSettings.pageCredits}`);
+  console.log(
+    `[PageGenerator] 2-Step Page synthesized and persisted successfully (ID: ${savedPage.id}, Handle: ${handle}) using ${modelUsed}. Remaining credits: ${updatedSettings.pageCredits}`
+  );
 
   return {
     success: true,
-    pageId: tempPage.id,
-    page: tempPage,
+    pageId: savedPage.id,
+    page: savedPage,
     remainingCredits: updatedSettings.pageCredits,
     modelUsed,
   };

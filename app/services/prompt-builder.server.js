@@ -810,11 +810,13 @@ export function assemblePageFromPlan({
         collectionProducts[0]?.imageUrl ||
         primaryImageUrl;
 
+      const colHandle = selectedCollection.handle || "all";
       categoryList.push({
         title: selectedCollection.title,
-        handle: selectedCollection.handle || "all",
+        handle: colHandle,
         imageUrl: colCover,
-        link: `/collections/${selectedCollection.handle || "all"}`,
+        link: `/collections/${colHandle}`,
+        url: `/collections/${colHandle}`,
       });
     }
 
@@ -822,11 +824,13 @@ export function assemblePageFromPlan({
       for (const c of storeCollections) {
         if (!categoryList.some((item) => item.title.toLowerCase() === c.title.toLowerCase())) {
           const colCover = c.imageUrl || c.products?.[0]?.imageUrl || primaryImageUrl;
+          const colHandle = c.handle || "all";
           categoryList.push({
             title: c.title,
-            handle: c.handle || "all",
+            handle: colHandle,
             imageUrl: colCover,
-            link: `/collections/${c.handle || "all"}`,
+            link: `/collections/${colHandle}`,
+            url: `/collections/${colHandle}`,
           });
         }
         if (categoryList.length >= 4) break;
@@ -834,11 +838,15 @@ export function assemblePageFromPlan({
     }
 
     if (categoryList.length === 0) {
-      categoryList = plan.collectionList?.categories || [
-        { title: "Best Sellers", description: "Our most wanted performance gear", link: "/collections/all" },
-        { title: "New Arrivals", description: "Fresh releases for the season", link: "/collections/all" },
-        { title: "Pro Equipment", description: "Tuning and accessories", link: "/collections/all" },
-      ];
+      categoryList = (plan.collectionList?.categories || [
+        { title: "Best Sellers", handle: "all", description: "Our most wanted performance gear", link: "/collections/all", url: "/collections/all" },
+        { title: "New Arrivals", handle: "all", description: "Fresh releases for the season", link: "/collections/all", url: "/collections/all" },
+        { title: "Pro Equipment", handle: "all", description: "Tuning and accessories", link: "/collections/all", url: "/collections/all" },
+      ]).map((cat) => ({
+        ...cat,
+        link: cat.link || `/collections/${cat.handle || "all"}`,
+        url: cat.url || cat.link || `/collections/${cat.handle || "all"}`,
+      }));
     }
 
     sections.push({
@@ -850,37 +858,49 @@ export function assemblePageFromPlan({
       },
     });
 
-    // 3. FEATURED GRID (4-Product Grid with Real Ingested Catalog Items)
-    let gridSource = activeGridProducts;
-    if (!gridSource || gridSource.length === 0) {
-      if (collectionProducts.length > 0) {
-        gridSource = collectionProducts;
-      } else {
-        gridSource = candidateProducts.slice(0, 4);
-      }
+    // 3. FEATURED GRID (All Products from Selected Collection or Catalog Items)
+    let gridSource = [];
+    if (collectionProducts && collectionProducts.length > 0) {
+      gridSource = collectionProducts;
+    } else if (activeGridProducts && activeGridProducts.length > 0) {
+      gridSource = activeGridProducts;
+    } else {
+      gridSource = candidateProducts;
     }
 
     const gridItems = (gridSource && gridSource.length > 0)
-      ? gridSource.slice(0, 4).map((p) => ({
-          id: p.id,
-          title: p.title,
-          price: p.price || "$99.00",
-          imageUrl: p.imageUrl || p.featuredImage?.url || primaryImageUrl,
-          handle: p.handle || "product",
-          buttonAction: {
-            label: "Add to Cart",
-            actionType: BUTTON_ACTION_TYPES.ADD_TO_CART,
-            target: p.primaryVariantId || p.variants?.[0]?.id || p.id,
-            style: "primary",
-          },
-        }))
+      ? gridSource.slice(0, 8).map((p) => {
+          const targetVariantId = p.primaryVariantId || p.variants?.[0]?.id || p.id || "";
+          return {
+            id: p.id,
+            title: p.title,
+            price: p.price ? (String(p.price).startsWith("$") ? p.price : `$${p.price}`) : "$99.00",
+            imageUrl: p.imageUrl || p.featuredImage?.url || p.images?.[0]?.url || p.galleryImages?.[0] || primaryImageUrl,
+            handle: p.handle || "product",
+            variantId: targetVariantId,
+            buttonAction: {
+              label: "Add to Cart",
+              actionType: BUTTON_ACTION_TYPES.ADD_TO_CART,
+              target: targetVariantId,
+              variantId: targetVariantId,
+              style: "primary",
+            },
+          };
+        })
       : [
           {
             id: "sample_1",
             title: productTitle,
             price: productPrice,
             imageUrl: primaryImageUrl,
-            buttonAction: { label: "Add to Cart", actionType: BUTTON_ACTION_TYPES.ADD_TO_CART, target: primaryVariantId, style: "primary" },
+            variantId: primaryVariantId,
+            buttonAction: {
+              label: "Add to Cart",
+              actionType: BUTTON_ACTION_TYPES.ADD_TO_CART,
+              target: primaryVariantId,
+              variantId: primaryVariantId,
+              style: "primary",
+            },
           },
         ];
 
@@ -888,7 +908,7 @@ export function assemblePageFromPlan({
       id: `sec_featured_grid_${now}_2`,
       type: "FEATURED_GRID",
       data: {
-        heading: plan.featuredGrid?.heading || "Curated Best Sellers",
+        heading: plan.featuredGrid?.heading || "Featured Best Sellers",
         subtitle: plan.featuredGrid?.subtitle || "Handpicked favorites engineered for peak performance.",
         products: gridItems,
       },
@@ -923,7 +943,7 @@ export function assemblePageFromPlan({
       },
     });
 
-    // 6. FINAL CTA BANNER (Closing Conversion Banner with Button Action)
+    // 6. FINAL CTA BANNER (Closing Conversion Banner routing to /collections by default)
     sections.push({
       id: `sec_final_cta_${now}_5`,
       type: "FINAL_CTA",
@@ -931,10 +951,10 @@ export function assemblePageFromPlan({
         heading: plan.finalCta?.heading || `Ready to Experience ${brandName}?`,
         subheading: plan.finalCta?.subheading || "Explore our latest collection and enjoy free worldwide shipping on orders over $50.",
         buttonPrimary: {
-          label: plan.finalCta?.ctaText || "Explore All Collections →",
+          label: plan.finalCta?.ctaText || "Explore All Collections",
           actionType: BUTTON_ACTION_TYPES.LINK,
-          target: selectedCollection ? `/collections/${selectedCollection.handle || "all"}` : "/collections/all",
-          style: "primary",
+          target: "/collections",
+          style: "secondary",
         },
       },
     });

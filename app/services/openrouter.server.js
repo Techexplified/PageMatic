@@ -26,6 +26,11 @@ export async function generateWithOpenRouter({
     const currentModel = modelQueue[i];
     console.log(`[OpenRouter] Attempting generation with model (${i + 1}/${modelQueue.length}): ${currentModel}`);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 14000); // 14-second hard timeout per model attempt to prevent Cloudflare 524
+
     try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -44,7 +49,10 @@ export async function generateWithOpenRouter({
           temperature: temperature,
           max_tokens: maxTokens,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -84,6 +92,8 @@ export async function generateWithOpenRouter({
     } catch (err) {
       console.warn(`[OpenRouter] Error with model ${currentModel}:`, err.message);
       lastError = new Error(`Model ${currentModel}: ${err.message}`);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

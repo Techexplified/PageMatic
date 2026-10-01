@@ -91,6 +91,373 @@ export function compilePageToHtml(contentJson = {}) {
 >
   ${renderedSections}
 </div>
+
+<script>
+(function() {
+  function showPmToast(msg, isSuccess) {
+    var existing = document.getElementById('pm-storefront-toast');
+    if (existing) existing.remove();
+    
+    var toast = document.createElement('div');
+    toast.id = 'pm-storefront-toast';
+    toast.innerHTML = msg;
+    toast.style.position = 'fixed';
+    toast.style.bottom = '24px';
+    toast.style.right = '24px';
+    toast.style.background = '#0F172A';
+    toast.style.color = '#FFFFFF';
+    toast.style.padding = '14px 22px';
+    toast.style.borderRadius = '10px';
+    toast.style.fontSize = '14px';
+    toast.style.fontWeight = '600';
+    toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+    toast.style.zIndex = '999999';
+    toast.style.display = 'flex';
+    toast.style.alignItems = 'center';
+    toast.style.gap = '8px';
+    toast.style.border = isSuccess ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)';
+    toast.style.transition = 'all 0.3s ease';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(function() {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+    }, 20);
+    
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+    }, 3500);
+  }
+
+  function updateThemeCart(sectionsData, itemData) {
+    var sectionRendered = false;
+
+    function renderItemsFromCartObject(cart) {
+      if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) return;
+
+      var itemsContainer = document.querySelector('#CartDrawer-CartItems, cart-drawer-items, .drawer__contents');
+      if (itemsContainer) {
+        var itemsHtml = '<table class="cart-items" role="table" style="width: 100%; border-collapse: collapse; margin-top: 12px;">' +
+          '<thead><tr style="border-bottom: 1px solid #E2E8F0; font-size: 11px; text-transform: uppercase; color: #64748B;"><th style="text-align: left; padding: 6px 0;">Product</th><th style="text-align: right; padding: 6px 0;">Total</th></tr></thead>' +
+          '<tbody>';
+
+        cart.items.forEach(function(item) {
+          var imgUrl = item.featured_image ? (item.featured_image.url || item.featured_image) : (item.image || '');
+          var itemPrice = '$' + (item.final_price / 100).toFixed(2);
+          var lineTotal = '$' + (item.final_line_price / 100).toFixed(2);
+          var itemTitle = item.product_title || item.title || 'Product';
+          var varTitle = item.variant_title && item.variant_title !== 'Default Title' ? item.variant_title : '';
+
+          itemsHtml += '<tr class="cart-item" style="border-bottom: 1px solid #F1F5F9; padding: 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px;">' +
+            '<td style="display: flex; align-items: center; gap: 12px; flex: 1;">' +
+              (imgUrl ? '<img src="' + imgUrl + '" alt="' + itemTitle + '" style="width: 60px; height: 60px; object-fit: contain; background: #FFFFFF; border-radius: 6px; border: 1px solid #E2E8F0; padding: 4px; flex-shrink: 0;" />' : '<div style="width: 60px; height: 60px; background: #F1F5F9; border-radius: 6px; flex-shrink: 0;"></div>') +
+              '<div>' +
+                '<div style="font-weight: 700; font-size: 13.5px; color: #0F172A; line-height: 1.3;">' + itemTitle + '</div>' +
+                (varTitle ? '<div style="font-size: 12px; color: #64748B; margin-top: 2px;">' + varTitle + '</div>' : '') +
+                '<div style="font-size: 13px; color: #0F172A; font-weight: 600; margin-top: 4px;">' + itemPrice + '</div>' +
+                '<div style="font-size: 12px; color: #64748B; margin-top: 4px;">Qty: ' + item.quantity + '</div>' +
+              '</div>' +
+            '</td>' +
+            '<td style="font-weight: 700; font-size: 14px; color: #0F172A; text-align: right; white-space: nowrap;">' +
+              lineTotal +
+            '</td>' +
+          '</tr>';
+        });
+
+        itemsHtml += '</tbody></table>';
+        itemsContainer.innerHTML = itemsHtml;
+      }
+
+      // Update Subtotal element (only target value, never label)
+      var subtotalVal = '$' + (cart.total_price / 100).toFixed(2) + ' ' + (cart.currency || 'USD');
+      var subtotalEls = document.querySelectorAll('.totals__subtotal-value, .drawer__footer .totals__subtotal-value, [data-cart-total]');
+      subtotalEls.forEach(function(el) {
+        el.textContent = subtotalVal;
+      });
+
+      // Update header heading if empty
+      var drawerHeader = document.querySelector('.drawer__header, .cart-drawer__header');
+      if (drawerHeader && !drawerHeader.querySelector('h2, .drawer__heading')) {
+        drawerHeader.innerHTML = '<h2 class="drawer__heading" style="font-size: 18px; font-weight: 800; color: #0F172A; margin: 0;">Your cart</h2>';
+      }
+    }
+
+    function applySections(sections) {
+      if (!sections) return;
+      
+      var cartDrawerEl = document.querySelector('cart-drawer');
+      var cartNotificationEl = document.querySelector('cart-notification');
+
+      // 1. Try native Dawn / Shopify Custom Element renderContents
+      var handledNative = false;
+      if (cartDrawerEl && typeof cartDrawerEl.renderContents === 'function') {
+        try {
+          cartDrawerEl.renderContents({
+            id: itemData ? itemData.id : null,
+            sections: sections
+          });
+          handledNative = true;
+          sectionRendered = true;
+        } catch (e) {
+          console.warn('Native cartDrawer.renderContents error:', e);
+        }
+      }
+
+      if (!handledNative && cartNotificationEl && typeof cartNotificationEl.renderContents === 'function') {
+        try {
+          cartNotificationEl.renderContents({
+            id: itemData ? itemData.id : null,
+            sections: sections
+          });
+          handledNative = true;
+          sectionRendered = true;
+        } catch (e) {}
+      }
+
+      // 2. Direct DOM HTML replacement from section HTML if not handled natively
+      if (!handledNative && sections['cart-drawer']) {
+        try {
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(sections['cart-drawer'], 'text/html');
+
+          var liveInner = document.querySelector('.drawer__inner');
+          var newInner = doc.querySelector('.drawer__inner');
+          if (liveInner && newInner && newInner.innerHTML.trim().length > 30) {
+            liveInner.innerHTML = newInner.innerHTML;
+            sectionRendered = true;
+          }
+
+          var liveItems = document.querySelector('#CartDrawer-CartItems, cart-drawer-items, .drawer__contents');
+          var newItems = doc.querySelector('#CartDrawer-CartItems, cart-drawer-items, .drawer__contents');
+          if (liveItems && newItems && newItems.innerHTML.trim().length > 20) {
+            liveItems.innerHTML = newItems.innerHTML;
+            sectionRendered = true;
+          }
+
+          var liveFooter = document.querySelector('.cart-drawer__footer, .drawer__footer');
+          var newFooter = doc.querySelector('.cart-drawer__footer, .drawer__footer');
+          if (liveFooter && newFooter) {
+            liveFooter.innerHTML = newFooter.innerHTML;
+          }
+        } catch (domErr) {
+          console.warn('DOM parser error for cart-drawer:', domErr);
+        }
+      }
+
+      if (sections['cart-icon-bubble']) {
+        try {
+          var bParser = new DOMParser();
+          var bDoc = bParser.parseFromString(sections['cart-icon-bubble'], 'text/html');
+          var liveBubble = document.querySelector('#cart-icon-bubble');
+          var newBubble = bDoc.querySelector('#cart-icon-bubble') || bDoc.body.firstElementChild;
+          if (liveBubble && newBubble) {
+            liveBubble.innerHTML = newBubble.innerHTML;
+          }
+        } catch (bErr) {}
+      }
+
+      // Remove is-empty classes across all drawer wrappers
+      var emptyWrappers = document.querySelectorAll('cart-drawer, #CartDrawer, .drawer__inner, cart-drawer-items, .cart-drawer, .drawer');
+      emptyWrappers.forEach(function(el) {
+        el.classList.remove('is-empty');
+      });
+
+      // Open drawer
+      if (cartDrawerEl) {
+        if (typeof cartDrawerEl.open === 'function') {
+          cartDrawerEl.open();
+        } else {
+          cartDrawerEl.classList.add('active', 'animate', 'is-open');
+          document.documentElement.classList.add('overflow-hidden');
+        }
+      } else {
+        var mainDrawer = document.querySelector('#CartDrawer, .cart-drawer, .drawer');
+        if (mainDrawer) {
+          mainDrawer.classList.add('active', 'animate', 'is-open');
+          document.documentElement.classList.add('overflow-hidden');
+        } else {
+          var cartTrigger = document.querySelector('#cart-icon-bubble, [aria-controls="CartDrawer"], [data-drawer-trigger="cart"], a[href="#cart-drawer"]');
+          if (cartTrigger) cartTrigger.click();
+        }
+      }
+    }
+
+    if (sectionsData && (sectionsData['cart-drawer'] || sectionsData['cart-icon-bubble'])) {
+      applySections(sectionsData);
+    } else {
+      // Fallback: Fetch rendered sections from root URL
+      fetch('/?sections=cart-drawer,cart-icon-bubble,cart-notification')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          applySections(data);
+        })
+        .catch(function(err) {
+          console.warn('Section fetch error:', err);
+        });
+    }
+
+    // 3. Always fetch /cart.js to ensure live badges are synced and events dispatched
+    fetch('/cart.js')
+      .then(function(res) { return res.json(); })
+      .then(function(cart) {
+        // ONLY render fallback table if theme section rendering completely failed/empty
+        var liveItems = document.querySelector('#CartDrawer-CartItems .cart-item, cart-drawer-items .cart-item, .drawer__contents .cart-item');
+        if (!sectionRendered && !liveItems) {
+          renderItemsFromCartObject(cart);
+        }
+
+        document.dispatchEvent(new CustomEvent('cart:updated', { bubbles: true, detail: cart }));
+        document.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true, detail: cart }));
+        document.dispatchEvent(new CustomEvent('cart:build', { bubbles: true }));
+        document.dispatchEvent(new CustomEvent('ajaxCart.afterCartLoad', { bubbles: true, detail: cart }));
+        document.dispatchEvent(new CustomEvent('shopify:cart:update', { bubbles: true, detail: cart }));
+
+        var badges = document.querySelectorAll('.cart-count, .cart-count-bubble, [data-cart-count], #CartCount, .header__cart-count, #cart-icon-bubble span');
+        badges.forEach(function(badge) {
+          badge.textContent = cart.item_count;
+          badge.removeAttribute('hidden');
+          badge.classList.remove('visually-hidden', 'hidden');
+        });
+
+        // Open drawer
+        var drawer = document.querySelector('cart-drawer, #CartDrawer, .cart-drawer, .drawer');
+        if (drawer) {
+          drawer.classList.remove('is-empty');
+          if (typeof drawer.open === 'function') drawer.open();
+          else drawer.classList.add('active', 'animate', 'is-open');
+        }
+      })
+      .catch(function(err) {
+        console.warn('Cart sync error:', err);
+      });
+  }
+
+  function handleActionClick(e) {
+    if (e.__pmHandled) return;
+    var btn = e.target.closest('.pm-action-btn, [data-pm-action]');
+    if (!btn) return;
+    e.__pmHandled = true;
+    
+    var action = btn.getAttribute('data-pm-action');
+    var target = btn.getAttribute('data-pm-target');
+    var variantId = btn.getAttribute('data-pm-variant-id') || target;
+    
+    if (variantId) {
+      var match = variantId.match(/\/ProductVariant\/(\d+)/i) || variantId.match(/\/Product\/(\d+)/i) || variantId.match(/\d+/);
+      if (match) variantId = match[1] || match[0];
+    }
+
+    if (action === 'ADD_TO_CART') {
+      e.preventDefault();
+      if (!variantId) {
+        showPmToast('⚠️ Please select a product option first.', false);
+        return;
+      }
+      var origContent = btn.innerHTML;
+      btn.innerHTML = '<span>Adding...</span>';
+      btn.disabled = true;
+      btn.style.opacity = '0.75';
+
+      // Detect theme sections to render
+      var sectionsList = ['cart-drawer', 'cart-icon-bubble', 'cart-notification'];
+      var cartDrawerEl = document.querySelector('cart-drawer');
+      if (cartDrawerEl && typeof cartDrawerEl.getSectionsToRender === 'function') {
+        try {
+          var customSecs = cartDrawerEl.getSectionsToRender().map(function(s) { return s.section || s.id; });
+          if (customSecs.length) sectionsList = customSecs;
+        } catch (e) {}
+      }
+
+      var formData = new FormData();
+      formData.append('id', parseInt(variantId, 10));
+      formData.append('quantity', 1);
+      formData.append('sections', sectionsList.join(','));
+      formData.append('sections_url', '/');
+
+      fetch('/cart/add', {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        },
+        body: formData
+      })
+      .then(function(res) {
+        if (!res.ok) {
+          // Fallback to /cart/add.js JSON
+          return fetch('/cart/add.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ id: parseInt(variantId, 10), quantity: 1 })
+          }).then(function(r) { return r.json(); });
+        }
+        return res.json();
+      })
+      .then(function(data) {
+        btn.innerHTML = '<span>✓ Added to Cart!</span>';
+        btn.style.opacity = '1';
+        showPmToast('🛒 Added to Cart! <a href="/cart" style="color: #60A5FA; text-decoration: underline; margin-left: 8px;">View Cart ↗</a>', true);
+        
+        // Pass rendered section HTML to populate and open drawer
+        updateThemeCart(data ? data.sections : null, data);
+        
+        setTimeout(function() {
+          btn.innerHTML = origContent;
+          btn.disabled = false;
+        }, 2200);
+      })
+      .catch(function(err) {
+        console.warn('AJAX cart add error:', err);
+        btn.innerHTML = '<span>✓ Added!</span>';
+        btn.style.opacity = '1';
+        showPmToast('🛒 Item added to cart! <a href="/cart" style="color: #60A5FA; text-decoration: underline; margin-left: 8px;">View Cart ↗</a>', true);
+        updateThemeCart(null, null);
+        setTimeout(function() {
+          btn.innerHTML = origContent;
+          btn.disabled = false;
+        }, 2000);
+      });
+    } else if (action === 'BUY_NOW') {
+      e.preventDefault();
+      if (variantId) {
+        window.location.href = '/cart/' + variantId + ':1';
+      } else {
+        window.location.href = '/checkout';
+      }
+    } else if (action === 'SCROLL_TO') {
+      e.preventDefault();
+      if (target) {
+        var cleanTarget = target.trim();
+        var el = document.querySelector(cleanTarget) || document.getElementById(cleanTarget.replace('#', ''));
+        if (!el && cleanTarget.indexOf('featured_grid') !== -1) {
+          el = document.querySelector('.pm-featured-grid') || document.querySelector("[id*='featured_grid']");
+        }
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    } else if (action === 'LINK') {
+      if (target && !btn.closest('a')) {
+        e.preventDefault();
+        window.location.href = target;
+      }
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('click', handleActionClick);
+    });
+  } else {
+    document.addEventListener('click', handleActionClick);
+  }
+})();
+</script>
 `;
 }
 
@@ -440,15 +807,20 @@ function compileSection(section, theme) {
             <h2 style="font-size: 28px; font-weight: 800; color: var(--pm-text-heading); margin: 0;">${heading}</h2>
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; max-width: 960px; margin: 0 auto;">
-            ${items.map((cat) => `
-              <div style="background: var(--pm-surface); border-radius: var(--pm-radius); border: 1px solid #e2e8f0; overflow: hidden; cursor: pointer;">
-                ${cat.imageUrl ? `<img src="${escapeHtml(cat.imageUrl)}" alt="${escapeHtml(cat.title || "")}" style="width: 100%; height: 140px; object-fit: cover;" />` : `<div style="height: 140px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 32px;">🛍️</div>`}
-                <div style="padding: 16px; text-align: center;">
-                  <h3 style="font-size: 16px; font-weight: 700; color: var(--pm-text-heading); margin: 0 0 4px;">${escapeHtml(cat.title || "")}</h3>
-                  <span style="font-size: 12px; color: var(--pm-primary); font-weight: 600;">Explore ↗</span>
+            ${items.map((cat) => {
+              const colUrl = escapeHtml(cat.link || cat.url || `/collections/${cat.handle || "all"}`);
+              return `
+              <a href="${colUrl}" class="pm-collection-card" style="display: flex; flex-direction: column; background: var(--pm-surface); border-radius: var(--pm-radius); border: 1px solid #e2e8f0; overflow: hidden; text-decoration: none; color: inherit; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+                <div style="height: 180px; background: #ffffff; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; overflow: hidden;">
+                  ${cat.imageUrl ? `<img src="${escapeHtml(cat.imageUrl)}" alt="${escapeHtml(cat.title || "")}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" />` : `<div style="font-size: 36px;">🛍️</div>`}
                 </div>
-              </div>
-            `).join("")}
+                <div style="padding: 16px; text-align: center; background: var(--pm-surface); border-top: 1px solid #f1f5f9; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                  <h3 style="font-size: 16px; font-weight: 700; color: var(--pm-text-heading); margin: 0 0 4px;">${escapeHtml(cat.title || "")}</h3>
+                  <span style="font-size: 12px; color: var(--pm-primary); font-weight: 700;">Explore ↗</span>
+                </div>
+              </a>
+            `;
+            }).join("")}
           </div>
         </section>
       `;
@@ -456,7 +828,7 @@ function compileSection(section, theme) {
 
     // 13. FEATURED GRID
     case "FEATURED_GRID": {
-      const heading = escapeHtml(data.heading || "Curated Best Sellers");
+      const heading = escapeHtml(data.heading || "Featured Best Sellers");
       const subtitle = escapeHtml(data.subtitle || "Handpicked favorites engineered for peak performance.");
       const products = Array.isArray(data.products) ? data.products : [];
       return `
@@ -466,16 +838,20 @@ function compileSection(section, theme) {
             <p style="font-size: 14.5px; color: var(--pm-text-body); margin: 0;">${subtitle}</p>
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; max-width: 1040px; margin: 0 auto;">
-            ${products.map((prod) => `
+            ${products.map((prod) => {
+              const targetVariantId = prod.variantId || prod.primaryVariantId || prod.id || "";
+              const btnSchema = prod.buttonAction || { label: "Add to Cart", actionType: "ADD_TO_CART", target: targetVariantId, variantId: targetVariantId, style: "primary" };
+              return `
               <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--pm-radius); padding: 16px; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
-                <div style="height: 160px; background: #f8fafc; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px;">
-                  ${prod.imageUrl ? `<img src="${escapeHtml(prod.imageUrl)}" alt="${escapeHtml(prod.title || "")}" style="max-width: 100%; max-height: 140px; object-fit: contain;" />` : `<span style="font-size: 28px; color: #94a3b8;">🛍️</span>`}
+                <div style="height: 180px; background: #f8fafc; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 12px; margin-bottom: 14px; box-sizing: border-box; overflow: hidden;">
+                  ${prod.imageUrl ? `<img src="${escapeHtml(prod.imageUrl)}" alt="${escapeHtml(prod.title || "")}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" />` : `<span style="font-size: 28px; color: #94a3b8;">🛍️</span>`}
                 </div>
                 <h3 style="font-size: 15px; font-weight: 700; color: var(--pm-text-heading); margin: 0 0 6px; flex: 1;">${escapeHtml(prod.title || "")}</h3>
                 <div style="font-size: 16px; font-weight: 800; color: var(--pm-primary); margin-bottom: 12px;">${escapeHtml(prod.price || "")}</div>
-                ${renderButtonHtml(prod.buttonAction || { label: "Add to Cart", actionType: "ADD_TO_CART", target: prod.id, style: "primary" }, "Add to Cart", "primary")}
+                ${renderButtonHtml(btnSchema, "Add to Cart", "primary")}
               </div>
-            `).join("")}
+            `;
+            }).join("")}
           </div>
         </section>
       `;
@@ -629,13 +1005,13 @@ function compileSection(section, theme) {
     case "FINAL_CTA": {
       const heading = escapeHtml(data.heading || data.headline || "Ready to Elevate Your Performance?");
       const subheading = escapeHtml(data.subheading || data.subheadline || data.description || "Claim your limited-time discount before promotion ends.");
-      const btn = data.buttonPrimary || data.buttonAction || data.primaryButton || { label: "Claim Offer Now", actionType: "BUY_NOW", style: "secondary" };
+      const btn = data.buttonPrimary || data.buttonAction || data.primaryButton || { label: "Explore All Collections", actionType: "LINK", target: "/collections", style: "secondary" };
       return `
         <section id="${sectionId}" class="pm-section pm-final-cta" style="padding: 60px 32px; background: var(--pm-primary); color: #ffffff; text-align: center;">
           <div style="max-width: 600px; margin: 0 auto;">
             <h2 style="font-size: 32px; font-weight: 800; margin: 0 0 12px; letter-spacing: -0.02em; color: #ffffff;">${heading}</h2>
             <p style="font-size: 16px; color: rgba(255, 255, 255, 0.9); margin: 0 0 28px;">${subheading}</p>
-            ${renderButtonHtml(btn, "Claim Offer Now", "secondary")}
+            ${renderButtonHtml(btn, "Explore All Collections", "secondary")}
           </div>
         </section>
       `;

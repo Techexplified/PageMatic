@@ -89,8 +89,10 @@
 
   // Global Click Event Delegation
   document.addEventListener("click", async (event) => {
+    if (event.__pmHandled) return;
     const button = event.target.closest("[data-pm-action]");
     if (!button) return;
+    event.__pmHandled = true;
 
     const actionType = button.getAttribute("data-pm-action");
     const target = button.getAttribute("data-pm-target") || "";
@@ -157,6 +159,8 @@
         console.warn("[PageMatic] No variant ID found for Add to Cart action.");
         if (target && (target.startsWith("/") || target.startsWith("http"))) {
           window.location.href = target;
+        } else {
+          showPmToast("⚠️ Please select a product option first.", false);
         }
         return;
       }
@@ -168,103 +172,326 @@
       button.innerHTML = "<span>Adding...</span>";
 
       try {
-        const rootUrl = window.Shopify?.routes?.root || "/";
-        const endpoint = (rootUrl.endsWith("/") ? rootUrl : rootUrl + "/") + "cart/add.js";
+        const rootUrl = (window.Shopify && window.Shopify.routes && window.Shopify.routes.root) || "/";
+        const cleanRoot = rootUrl.endsWith("/") ? rootUrl : rootUrl + "/";
 
-        // Request updated sections from Shopify's Section Rendering API for Dawn / OS 2.0 themes
-        const res = await fetch(endpoint, {
+        // Detect theme sections to render
+        let sectionsList = ["cart-drawer", "cart-icon-bubble", "cart-notification", "cart-live-region-text", "main-cart-items"];
+        const cartDrawerEl = document.querySelector("cart-drawer");
+        if (cartDrawerEl && typeof cartDrawerEl.getSectionsToRender === "function") {
+          try {
+            const customSecs = cartDrawerEl.getSectionsToRender().map((s) => s.section || s.id);
+            if (customSecs.length) sectionsList = customSecs;
+          } catch (e) {}
+        }
+
+        const formData = new FormData();
+        formData.append("id", parseInt(variantId, 10));
+        formData.append("quantity", 1);
+        formData.append("sections", sectionsList.join(","));
+        formData.append("sections_url", "/");
+
+        const res = await fetch(`${cleanRoot}cart/add`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
             Accept: "application/json",
           },
-          body: JSON.stringify({
-            items: [
-              {
-                id: Number(variantId) || variantId,
-                quantity: 1,
-              },
-            ],
-            sections: "cart-drawer,cart-icon-bubble,cart-live-region-text,main-cart-items",
-            sections_url: window.location.pathname,
-          }),
+          body: formData,
         });
 
-        const data = await res.json();
-
+        let data = null;
         if (res.ok) {
-          // Success State
-          button.innerHTML = "<span>Added! ✓</span>";
-
-          // Dispatch standard Shopify theme cart refresh events
-          document.documentElement.dispatchEvent(
-            new CustomEvent("cart:updated", {
-              bubbles: true,
-              detail: { cart: data },
-            })
-          );
-          document.documentElement.dispatchEvent(
-            new CustomEvent("cart:refresh", {
-              bubbles: true,
-              detail: { cart: data },
-            })
-          );
-
-          // Support Dawn & standard OS 2.0 cart drawers safely
-          try {
-            const cartDrawer = document.querySelector("cart-drawer, cart-notification");
-            if (cartDrawer) {
-              if (typeof cartDrawer.renderContents === "function" && data.sections) {
-                cartDrawer.renderContents(data);
-              } else if (typeof cartDrawer.open === "function") {
-                cartDrawer.open();
-              } else {
-                cartDrawer.classList.add("active", "is-open");
-              }
-            }
-
-            // Update cart bubbles if theme provides them
-            const bubbles = document.querySelectorAll(".cart-count-bubble, [data-cart-count]");
-            if (bubbles.length > 0) {
-              const countRes = await fetch((rootUrl.endsWith("/") ? rootUrl : rootUrl + "/") + "cart.js");
-              const cartState = await countRes.json();
-              bubbles.forEach((b) => {
-                b.textContent = cartState.item_count || 1;
-                b.classList.remove("hidden");
-              });
-            }
-          } catch (drawerErr) {
-            console.warn("[PageMatic] Theme drawer notice:", drawerErr);
-          }
-
-          // Reset button feedback
-          setTimeout(() => {
-            button.innerHTML = originalContent;
-            button.disabled = false;
-            button.classList.remove("pm-btn-loading");
-          }, 2000);
+          data = await res.json();
         } else {
-          // Error Feedback (e.g. Sold Out)
-          const errorMsg = data?.description || data?.message || "Unavailable";
-          button.innerHTML = `<span>${errorMsg}</span>`;
-
-          setTimeout(() => {
-            button.innerHTML = originalContent;
-            button.disabled = false;
-            button.classList.remove("pm-btn-loading");
-          }, 2500);
+          // Fallback to JSON endpoint
+          const resFallback = await fetch(`${cleanRoot}cart/add.js`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              id: parseInt(variantId, 10),
+              quantity: 1,
+            }),
+          });
+          if (!resFallback.ok) {
+            throw new Error("Failed to add product to cart");
+          }
+          data = await resFallback.json();
         }
-      } catch (err) {
-        console.error("[PageMatic] Cart add error:", err);
-        button.innerHTML = "<span>Error</span>";
+
+        // Success State on Button
+        button.innerHTML = "<span>Added! ✓</span>";
+        showPmToast("✓ Added to cart!", true);
+
+        // Update Theme Cart & Open Drawer
+        await updateThemeCart(data ? data.sections : null, data);
+
+        // Reset button feedback
         setTimeout(() => {
           button.innerHTML = originalContent;
           button.disabled = false;
           button.classList.remove("pm-btn-loading");
         }, 2000);
+      } catch (err) {
+        console.error("[PageMatic] Cart add error:", err);
+        button.innerHTML = "<span>Unavailable</span>";
+        showPmToast("⚠️ Could not add item to cart.", false);
+        setTimeout(() => {
+          button.innerHTML = originalContent;
+          button.disabled = false;
+          button.classList.remove("pm-btn-loading");
+        }, 2500);
       }
     }
   });
+
+  // Helper: Visual Toast Notification
+  function showPmToast(msg, isSuccess) {
+    const existing = document.getElementById("pm-storefront-toast");
+    if (existing) existing.remove();
+
+    const toast = document.createElement("div");
+    toast.id = "pm-storefront-toast";
+    toast.innerHTML = msg;
+    toast.style.cssText =
+      "position: fixed; bottom: 24px; right: 24px; background: #0F172A; color: #FFFFFF; padding: 14px 22px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.25); z-index: 999999; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; opacity: 0; transform: translateY(10px); border: " +
+      (isSuccess ? "1px solid rgba(34, 197, 94, 0.4);" : "1px solid rgba(239, 68, 68, 0.4);");
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = "1";
+      toast.style.transform = "translateY(0)";
+    }, 20);
+
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(10px)";
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 300);
+    }, 3500);
+  }
+
+  // Helper: Update Theme Cart & Render Drawer Contents
+  async function updateThemeCart(sectionsData, itemData) {
+    const rootUrl = (window.Shopify && window.Shopify.routes && window.Shopify.routes.root) || "/";
+    const cleanRoot = rootUrl.endsWith("/") ? rootUrl : rootUrl + "/";
+    let sectionRendered = false;
+
+    function renderItemsFromCartObject(cart) {
+      if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) return;
+
+      const itemsContainer = document.querySelector("#CartDrawer-CartItems, cart-drawer-items, .drawer__contents, .cart-drawer__items");
+      if (itemsContainer) {
+        let itemsHtml =
+          '<table class="cart-items" role="table" style="width: 100%; border-collapse: collapse; margin-top: 12px;">' +
+          '<thead><tr style="border-bottom: 1px solid #E2E8F0; font-size: 11px; text-transform: uppercase; color: #64748B;"><th style="text-align: left; padding: 6px 0;">Product</th><th style="text-align: right; padding: 6px 0;">Total</th></tr></thead>' +
+          "<tbody>";
+
+        cart.items.forEach((item) => {
+          const imgUrl = item.featured_image ? item.featured_image.url || item.featured_image : item.image || "";
+          const itemPrice = "$" + (item.final_price / 100).toFixed(2);
+          const lineTotal = "$" + (item.final_line_price / 100).toFixed(2);
+          const itemTitle = item.product_title || item.title || "Product";
+          const varTitle = item.variant_title && item.variant_title !== "Default Title" ? item.variant_title : "";
+
+          itemsHtml +=
+            '<tr class="cart-item" style="border-bottom: 1px solid #F1F5F9; padding: 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px;">' +
+            '<td style="display: flex; align-items: center; gap: 12px; flex: 1;">' +
+            (imgUrl
+              ? `<img src="${imgUrl}" alt="${itemTitle}" style="width: 60px; height: 60px; object-fit: contain; background: #FFFFFF; border-radius: 6px; border: 1px solid #E2E8F0; padding: 4px; flex-shrink: 0;" />`
+              : '<div style="width: 60px; height: 60px; background: #F1F5F9; border-radius: 6px; flex-shrink: 0;"></div>') +
+            "<div>" +
+            `<div style="font-weight: 700; font-size: 13.5px; color: #0F172A; line-height: 1.3;">${itemTitle}</div>` +
+            (varTitle ? `<div style="font-size: 12px; color: #64748B; margin-top: 2px;">${varTitle}</div>` : "") +
+            `<div style="font-size: 13px; color: #0F172A; font-weight: 600; margin-top: 4px;">${itemPrice}</div>` +
+            `<div style="font-size: 12px; color: #64748B; margin-top: 4px;">Qty: ${item.quantity}</div>` +
+            "</div>" +
+            "</td>" +
+            `<td style="font-weight: 700; font-size: 14px; color: #0F172A; text-align: right; white-space: nowrap;">${lineTotal}</td>` +
+            "</tr>";
+        });
+
+        itemsHtml += "</tbody></table>";
+        itemsContainer.innerHTML = itemsHtml;
+      }
+
+      // Update Subtotal value (only target the value container, not the label)
+      const subtotalVal = "$" + (cart.total_price / 100).toFixed(2) + " " + (cart.currency || "USD");
+      const subtotalEls = document.querySelectorAll(".totals__subtotal-value, .drawer__footer .totals__subtotal-value, [data-cart-total]");
+      subtotalEls.forEach((el) => {
+        el.textContent = subtotalVal;
+      });
+
+      // Update header heading if empty
+      const drawerHeader = document.querySelector(".drawer__header, .cart-drawer__header");
+      if (drawerHeader && !drawerHeader.querySelector("h2, .drawer__heading")) {
+        drawerHeader.innerHTML = '<h2 class="drawer__heading" style="font-size: 18px; font-weight: 800; color: #0F172A; margin: 0;">Your cart</h2>';
+      }
+    }
+
+    function applySections(sections) {
+      if (!sections) return;
+
+      const cartDrawerEl = document.querySelector("cart-drawer");
+      const cartNotificationEl = document.querySelector("cart-notification");
+
+      // 1. Try native Dawn / Shopify Custom Element renderContents
+      let handledNative = false;
+      if (cartDrawerEl && typeof cartDrawerEl.renderContents === "function") {
+        try {
+          cartDrawerEl.renderContents({
+            id: itemData ? itemData.id : null,
+            sections: sections,
+          });
+          handledNative = true;
+          sectionRendered = true;
+        } catch (e) {
+          console.warn("[PageMatic] Native cartDrawer.renderContents error:", e);
+        }
+      }
+
+      if (!handledNative && cartNotificationEl && typeof cartNotificationEl.renderContents === "function") {
+        try {
+          cartNotificationEl.renderContents({
+            id: itemData ? itemData.id : null,
+            sections: sections,
+          });
+          handledNative = true;
+          sectionRendered = true;
+        } catch (e) {}
+      }
+
+      // 2. Direct DOM HTML replacement from section HTML if not handled natively
+      if (!handledNative && sections["cart-drawer"]) {
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(sections["cart-drawer"], "text/html");
+
+          const liveInner = document.querySelector(".drawer__inner");
+          const newInner = doc.querySelector(".drawer__inner");
+          if (liveInner && newInner && newInner.innerHTML.trim().length > 30) {
+            liveInner.innerHTML = newInner.innerHTML;
+            sectionRendered = true;
+          }
+
+          const liveItems = document.querySelector("#CartDrawer-CartItems, cart-drawer-items, .drawer__contents");
+          const newItems = doc.querySelector("#CartDrawer-CartItems, cart-drawer-items, .drawer__contents");
+          if (liveItems && newItems && newItems.innerHTML.trim().length > 20) {
+            liveItems.innerHTML = newItems.innerHTML;
+            sectionRendered = true;
+          }
+
+          const liveFooter = document.querySelector(".cart-drawer__footer, .drawer__footer");
+          const newFooter = doc.querySelector(".cart-drawer__footer, .drawer__footer");
+          if (liveFooter && newFooter) {
+            liveFooter.innerHTML = newFooter.innerHTML;
+          }
+        } catch (domErr) {
+          console.warn("[PageMatic] DOM parser error for cart-drawer:", domErr);
+        }
+      }
+
+      if (sections["cart-icon-bubble"]) {
+        try {
+          const bParser = new DOMParser();
+          const bDoc = bParser.parseFromString(sections["cart-icon-bubble"], "text/html");
+          const liveBubble = document.querySelector("#cart-icon-bubble");
+          const newBubble = bDoc.querySelector("#cart-icon-bubble") || bDoc.body.firstElementChild;
+          if (liveBubble && newBubble) {
+            liveBubble.innerHTML = newBubble.innerHTML;
+          }
+        } catch (bErr) {}
+      }
+
+      // Remove is-empty classes across all drawer wrappers
+      const emptyWrappers = document.querySelectorAll("cart-drawer, #CartDrawer, .drawer__inner, cart-drawer-items, .cart-drawer, .drawer");
+      emptyWrappers.forEach((el) => {
+        el.classList.remove("is-empty");
+      });
+
+      // Open drawer
+      if (cartDrawerEl) {
+        if (typeof cartDrawerEl.open === "function") {
+          cartDrawerEl.open();
+        } else {
+          cartDrawerEl.classList.add("active", "animate", "is-open");
+          document.documentElement.classList.add("overflow-hidden");
+        }
+      } else {
+        const mainDrawer = document.querySelector("#CartDrawer, .cart-drawer, .drawer");
+        if (mainDrawer) {
+          mainDrawer.classList.add("active", "animate", "is-open");
+          document.documentElement.classList.add("overflow-hidden");
+        } else {
+          const cartTrigger = document.querySelector('#cart-icon-bubble, [aria-controls="CartDrawer"], [data-drawer-trigger="cart"], a[href="#cart-drawer"]');
+          if (cartTrigger) cartTrigger.click();
+        }
+      }
+    }
+
+    if (sectionsData && (sectionsData["cart-drawer"] || sectionsData["cart-icon-bubble"])) {
+      applySections(sectionsData);
+    } else {
+      // Fallback: Fetch rendered sections from root URL
+      try {
+        const sRes = await fetch(`${cleanRoot}?sections=cart-drawer,cart-icon-bubble,cart-notification`);
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          applySections(sData);
+        }
+      } catch (err) {
+        console.warn("[PageMatic] Section fetch error:", err);
+      }
+    }
+
+    // Always fetch /cart.js to ensure live cart badges and theme events are dispatched
+    try {
+      const cRes = await fetch(`${cleanRoot}cart.js`);
+      if (cRes.ok) {
+        const cart = await cRes.json();
+
+        // ONLY use client-side table rendering if theme section rendering completely failed/empty
+        const liveItems = document.querySelector("#CartDrawer-CartItems, cart-drawer-items .cart-item, .drawer__contents .cart-item");
+        if (!sectionRendered && !liveItems) {
+          renderItemsFromCartObject(cart);
+        }
+
+        // Remove is-empty from all drawer wrappers
+        const emptyEls = document.querySelectorAll("cart-drawer, #CartDrawer, .drawer__inner, cart-drawer-items, .cart-drawer, .drawer");
+        emptyEls.forEach((el) => el.classList.remove("is-empty"));
+
+        // Dispatch standard Shopify theme events
+        document.documentElement.dispatchEvent(new CustomEvent("cart:updated", { bubbles: true, detail: { cart } }));
+        document.documentElement.dispatchEvent(new CustomEvent("cart:refresh", { bubbles: true, detail: { cart } }));
+        document.dispatchEvent(new CustomEvent("cart:build", { bubbles: true }));
+        document.dispatchEvent(new CustomEvent("ajaxCart.afterCartLoad", { bubbles: true, detail: cart }));
+        document.dispatchEvent(new CustomEvent("shopify:cart:update", { bubbles: true, detail: cart }));
+
+        // Update badges
+        const badges = document.querySelectorAll(".cart-count, .cart-count-bubble, [data-cart-count], #CartCount, .header__cart-count, #cart-icon-bubble span");
+        badges.forEach((badge) => {
+          badge.textContent = cart.item_count;
+          badge.removeAttribute("hidden");
+          badge.classList.remove("visually-hidden", "hidden");
+        });
+
+        // Open drawer if not already open
+        const drawer = document.querySelector("cart-drawer, #CartDrawer, .cart-drawer, .drawer");
+        if (drawer) {
+          drawer.classList.remove("is-empty");
+          if (typeof drawer.open === "function") drawer.open();
+          else drawer.classList.add("active", "animate", "is-open");
+        }
+      }
+    } catch (cartErr) {
+      console.warn("[PageMatic] Cart sync error:", cartErr);
+    }
+  }
 
   // Sticky Buy Bar Scroll Behavior
   function initStickyBuyBar() {

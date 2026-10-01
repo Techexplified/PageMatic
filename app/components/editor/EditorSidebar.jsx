@@ -21,6 +21,7 @@ import {
   Mail,
   Grid,
   Zap,
+  Plus,
 } from "lucide-react";
 import { BUTTON_ACTION_TYPES, SECTION_ALLOWED_KEYS, PRESET_PALETTES } from "../../libs/ai-config";
 
@@ -961,115 +962,472 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
         />
       )}
 
-      {/* 4. REPEATABLE ITEMS */}
-      {isFieldAllowed("items") && Array.isArray(data.items) && (
+      {/* 4. REPEATABLE ITEMS (COLLECTION_LIST, FAQ, TESTIMONIALS, BENEFITS) */}
+      {isFieldAllowed("items") && (
         <div className="pm-form-field">
-          <label className="pm-form-field-label">Items ({data.items.length})</label>
-          {data.items.map((item, idx) => (
-            <div key={idx} className="pm-repeatable-card">
+          <label className="pm-form-field-label">
+            {secType === "COLLECTION_LIST" ? "Collection Cards" : "Items"} ({Array.isArray(data.items) ? data.items.length : 0})
+          </label>
+          {Array.isArray(data.items) && data.items.map((item, idx) => {
+            const itemObj = typeof item === "object" && item !== null ? item : { title: typeof item === "string" ? item : "" };
+            const itemTitle = itemObj.title || (typeof item === "string" ? item : "Untitled");
+
+            return (
+              <div key={idx} className="pm-repeatable-card" style={{ marginBottom: "12px" }}>
+                <div className="pm-repeatable-header">
+                  <span style={{ fontWeight: "700" }}>
+                    {secType === "COLLECTION_LIST"
+                      ? `Category ${idx + 1}: ${itemTitle}`
+                      : `Item ${idx + 1}`}
+                  </span>
+                  <button
+                    type="button"
+                    className="pm-icon-ghost-btn pm-icon-ghost-btn--danger"
+                    onClick={() => {
+                      const newItems = data.items.filter((_, i) => i !== idx);
+                      handleFieldChange("items", newItems);
+                    }}
+                    title="Remove item"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+
+                {/* COLLECTION_LIST item */}
+                {secType === "COLLECTION_LIST" ? (
+                  <>
+                    <div style={{ marginBottom: "6px" }}>
+                      <label className="pm-sub-label">Collection Title</label>
+                      <input
+                        type="text"
+                        className="pm-form-input"
+                        placeholder="e.g. Snowboards"
+                        value={itemObj.title || ""}
+                        onChange={(e) => {
+                          const newItems = [...data.items];
+                          newItems[idx] = { ...itemObj, title: e.target.value };
+                          handleFieldChange("items", newItems);
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "6px" }}>
+                      <label className="pm-sub-label">Collection Destination (URL Path or Section Anchor)</label>
+                      <input
+                        type="text"
+                        className="pm-form-input"
+                        placeholder="/collections/all"
+                        value={itemObj.link || itemObj.url || (itemObj.handle ? `/collections/${itemObj.handle}` : "")}
+                        onChange={(e) => {
+                          const newItems = [...data.items];
+                          newItems[idx] = {
+                            ...itemObj,
+                            link: e.target.value,
+                            url: e.target.value,
+                          };
+                          handleFieldChange("items", newItems);
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "6px" }}>
+                      <label className="pm-sub-label">Image URL</label>
+                      <input
+                        type="text"
+                        className="pm-form-input"
+                        placeholder="https://..."
+                        value={itemObj.imageUrl || ""}
+                        onChange={(e) => {
+                          const newItems = [...data.items];
+                          newItems[idx] = { ...itemObj, imageUrl: e.target.value };
+                          handleFieldChange("items", newItems);
+                        }}
+                      />
+                      {itemObj.imageUrl && (
+                        <img
+                          src={itemObj.imageUrl}
+                          alt={itemTitle}
+                          style={{ width: "100%", height: "70px", objectFit: "contain", background: "#FFFFFF", borderRadius: "6px", marginTop: "4px", border: "1px solid #E2E8F0" }}
+                        />
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* FAQ item */}
+                    {("question" in itemObj || secType.includes("FAQ")) && (
+                      <input
+                        type="text"
+                        className="pm-form-input"
+                        placeholder="Question"
+                        style={{ marginBottom: "6px" }}
+                        value={itemObj.question || ""}
+                        onChange={(e) => {
+                          const newItems = [...data.items];
+                          newItems[idx] = { ...itemObj, question: e.target.value };
+                          handleFieldChange("items", newItems);
+                        }}
+                      />
+                    )}
+                    {("answer" in itemObj || secType.includes("FAQ")) && (
+                      <textarea
+                        className="pm-form-textarea"
+                        placeholder="Answer"
+                        value={itemObj.answer || ""}
+                        onChange={(e) => {
+                          const newItems = [...data.items];
+                          newItems[idx] = { ...itemObj, answer: e.target.value };
+                          handleFieldChange("items", newItems);
+                        }}
+                      />
+                    )}
+
+                    {/* Title / Description item */}
+                    {("title" in itemObj && !secType.includes("FAQ") && !secType.includes("TESTIMONIALS") && !secType.includes("REVIEWS")) && (
+                      <input
+                        type="text"
+                        className="pm-form-input"
+                        placeholder="Title"
+                        style={{ marginBottom: "6px" }}
+                        value={itemObj.title || ""}
+                        onChange={(e) => {
+                          const newItems = [...data.items];
+                          newItems[idx] = { ...itemObj, title: e.target.value };
+                          handleFieldChange("items", newItems);
+                        }}
+                      />
+                    )}
+                    {("description" in itemObj || "desc" in itemObj) && (
+                      <textarea
+                        className="pm-form-textarea"
+                        placeholder="Description"
+                        value={itemObj.description || itemObj.desc || ""}
+                        onChange={(e) => {
+                          const newItems = [...data.items];
+                          newItems[idx] = { ...itemObj, description: e.target.value };
+                          handleFieldChange("items", newItems);
+                        }}
+                      />
+                    )}
+
+                    {/* Review item */}
+                    {("name" in itemObj || secType.includes("TESTIMONIALS") || secType.includes("REVIEWS")) && (
+                      <input
+                        type="text"
+                        className="pm-form-input"
+                        placeholder="Reviewer Name"
+                        style={{ marginBottom: "6px" }}
+                        value={itemObj.name || ""}
+                        onChange={(e) => {
+                          const newItems = [...data.items];
+                          newItems[idx] = { ...itemObj, name: e.target.value };
+                          handleFieldChange("items", newItems);
+                        }}
+                      />
+                    )}
+                    {("comment" in itemObj || secType.includes("TESTIMONIALS") || secType.includes("REVIEWS")) && (
+                      <textarea
+                        className="pm-form-textarea"
+                        placeholder="Review Comment"
+                        value={itemObj.comment || ""}
+                        onChange={(e) => {
+                          const newItems = [...data.items];
+                          newItems[idx] = { ...itemObj, comment: e.target.value };
+                          handleFieldChange("items", newItems);
+                        }}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          <button
+            type="button"
+            className="pm-add-item-btn"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              background: "transparent",
+              border: "1px dashed #CBD5E1",
+              borderRadius: "6px",
+              color: "#0052FF",
+              fontSize: "12px",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              cursor: "pointer",
+              marginTop: "4px",
+            }}
+            onClick={() => {
+              const newItem = secType === "COLLECTION_LIST"
+                ? { title: "New Collection", link: "/collections/all", imageUrl: "" }
+                : secType.includes("FAQ")
+                ? { question: "New Question?", answer: "Answer details here." }
+                : (secType.includes("TESTIMONIALS") || secType.includes("REVIEWS"))
+                ? { name: "Customer Name", comment: "Great product!", rating: 5, badge: "Verified Buyer" }
+                : { title: "New Benefit", description: "Benefit description" };
+              const newItems = [...(Array.isArray(data.items) ? data.items : []), newItem];
+              handleFieldChange("items", newItems);
+            }}
+          >
+            <Plus size={13} />
+            <span>{secType === "COLLECTION_LIST" ? "Add Collection Card" : "Add Item"}</span>
+          </button>
+        </div>
+      )}
+
+      {/* 5. REPEATABLE PRODUCTS (FEATURED_GRID) */}
+      {isFieldAllowed("products") && (
+        <div className="pm-form-field">
+          <label className="pm-form-field-label">
+            Featured Products ({Array.isArray(data.products) ? data.products.length : 0})
+          </label>
+          {Array.isArray(data.products) && data.products.map((prod, idx) => {
+            const targetVariantId = prod.variantId || prod.primaryVariantId || prod.id || "";
+            const prodBtn = prod.buttonAction || {
+              label: "Add to Cart",
+              actionType: "ADD_TO_CART",
+              target: targetVariantId,
+              variantId: targetVariantId,
+              style: "primary",
+            };
+
+            return (
+              <div key={prod.id || idx} className="pm-repeatable-card" style={{ marginBottom: "14px" }}>
+                <div className="pm-repeatable-header">
+                  <span style={{ fontWeight: "700" }}>Product {idx + 1}: {prod.title || "Untitled"}</span>
+                  <button
+                    type="button"
+                    className="pm-icon-ghost-btn pm-icon-ghost-btn--danger"
+                    onClick={() => {
+                      const newProducts = data.products.filter((_, i) => i !== idx);
+                      handleFieldChange("products", newProducts);
+                    }}
+                    title="Remove product"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+
+                <div style={{ marginBottom: "6px" }}>
+                  <label className="pm-sub-label">Product Name</label>
+                  <input
+                    type="text"
+                    className="pm-form-input"
+                    value={prod.title || ""}
+                    placeholder="Product Title"
+                    onChange={(e) => {
+                      const newProds = [...data.products];
+                      newProds[idx] = { ...newProds[idx], title: e.target.value };
+                      handleFieldChange("products", newProds);
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "6px" }}>
+                  <label className="pm-sub-label">Price</label>
+                  <input
+                    type="text"
+                    className="pm-form-input"
+                    value={prod.price || ""}
+                    placeholder="$99.00 USD"
+                    onChange={(e) => {
+                      const newProds = [...data.products];
+                      newProds[idx] = { ...newProds[idx], price: e.target.value };
+                      handleFieldChange("products", newProds);
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "8px" }}>
+                  <label className="pm-sub-label">Image URL</label>
+                  <input
+                    type="text"
+                    className="pm-form-input"
+                    value={prod.imageUrl || ""}
+                    placeholder="https://..."
+                    onChange={(e) => {
+                      const newProds = [...data.products];
+                      newProds[idx] = { ...newProds[idx], imageUrl: e.target.value };
+                      handleFieldChange("products", newProds);
+                    }}
+                  />
+                  {prod.imageUrl && (
+                    <img
+                      src={prod.imageUrl}
+                      alt={prod.title || "Product"}
+                      style={{ width: "100%", height: "80px", objectFit: "contain", background: "#FFFFFF", borderRadius: "6px", marginTop: "4px", border: "1px solid #E2E8F0" }}
+                    />
+                  )}
+                </div>
+
+                {/* Product Action Button Inspector */}
+                <InlineButtonInspector
+                  title="Product Add-to-Cart Action"
+                  buttonSchema={prodBtn}
+                  onChange={(field, val) => {
+                    const newProds = [...data.products];
+                    const updatedButton = {
+                      ...prodBtn,
+                      [field]: val,
+                    };
+                    if (field === "target" && (updatedButton.actionType === "ADD_TO_CART" || updatedButton.actionType === "BUY_NOW")) {
+                      updatedButton.variantId = val;
+                    }
+                    newProds[idx] = {
+                      ...newProds[idx],
+                      buttonAction: updatedButton,
+                      ...(field === "target" ? { variantId: val } : {}),
+                    };
+                    handleFieldChange("products", newProds);
+                  }}
+                />
+              </div>
+            );
+          })}
+
+          <button
+            type="button"
+            className="pm-add-item-btn"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              background: "transparent",
+              border: "1px dashed #CBD5E1",
+              borderRadius: "6px",
+              color: "#0052FF",
+              fontSize: "12px",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              cursor: "pointer",
+              marginTop: "4px",
+            }}
+            onClick={() => {
+              const newProducts = [
+                ...(Array.isArray(data.products) ? data.products : []),
+                {
+                  id: `prod_${Date.now()}`,
+                  title: "Featured Product",
+                  price: "$99.00 USD",
+                  imageUrl: "",
+                  buttonAction: {
+                    label: "Add to Cart",
+                    actionType: "ADD_TO_CART",
+                    target: "",
+                    variantId: "",
+                    style: "primary",
+                  },
+                },
+              ];
+              handleFieldChange("products", newProducts);
+            }}
+          >
+            <Plus size={13} />
+            <span>Add Featured Product</span>
+          </button>
+        </div>
+      )}
+
+      {/* 6. REPEATABLE CARDS (QUICK_HELP_GRID) */}
+      {isFieldAllowed("cards") && (
+        <div className="pm-form-field">
+          <label className="pm-form-field-label">
+            Help Cards ({Array.isArray(data.cards) ? data.cards.length : 0})
+          </label>
+          {Array.isArray(data.cards) && data.cards.map((card, idx) => (
+            <div key={idx} className="pm-repeatable-card" style={{ marginBottom: "12px" }}>
               <div className="pm-repeatable-header">
-                <span>Item {idx + 1}</span>
+                <span>Card {idx + 1}</span>
                 <button
                   type="button"
                   className="pm-icon-ghost-btn pm-icon-ghost-btn--danger"
                   onClick={() => {
-                    const newItems = data.items.filter((_, i) => i !== idx);
-                    handleFieldChange("items", newItems);
+                    const newCards = data.cards.filter((_, i) => i !== idx);
+                    handleFieldChange("cards", newCards);
                   }}
                 >
                   <Trash2 size={12} />
                 </button>
               </div>
 
-              {/* FAQ item */}
-              {"question" in item && (
-                <input
-                  type="text"
-                  className="pm-form-input"
-                  placeholder="Question"
-                  style={{ marginBottom: "6px" }}
-                  value={item.question || ""}
-                  onChange={(e) => {
-                    const newItems = [...data.items];
-                    newItems[idx] = { ...newItems[idx], question: e.target.value };
-                    handleFieldChange("items", newItems);
-                  }}
-                />
-              )}
-              {"answer" in item && (
-                <textarea
-                  className="pm-form-textarea"
-                  placeholder="Answer"
-                  value={item.answer || ""}
-                  onChange={(e) => {
-                    const newItems = [...data.items];
-                    newItems[idx] = { ...newItems[idx], answer: e.target.value };
-                    handleFieldChange("items", newItems);
-                  }}
-                />
-              )}
-
-              {/* Title / Description item */}
-              {"title" in item && (
-                <input
-                  type="text"
-                  className="pm-form-input"
-                  placeholder="Title"
-                  style={{ marginBottom: "6px" }}
-                  value={item.title || ""}
-                  onChange={(e) => {
-                    const newItems = [...data.items];
-                    newItems[idx] = { ...newItems[idx], title: e.target.value };
-                    handleFieldChange("items", newItems);
-                  }}
-                />
-              )}
-              {"description" in item && (
-                <textarea
-                  className="pm-form-textarea"
-                  placeholder="Description"
-                  value={item.description || item.desc || ""}
-                  onChange={(e) => {
-                    const newItems = [...data.items];
-                    newItems[idx] = { ...newItems[idx], description: e.target.value };
-                    handleFieldChange("items", newItems);
-                  }}
-                />
-              )}
-
-              {/* Review item */}
-              {"name" in item && (
-                <input
-                  type="text"
-                  className="pm-form-input"
-                  placeholder="Reviewer Name"
-                  style={{ marginBottom: "6px" }}
-                  value={item.name || ""}
-                  onChange={(e) => {
-                    const newItems = [...data.items];
-                    newItems[idx] = { ...newItems[idx], name: e.target.value };
-                    handleFieldChange("items", newItems);
-                  }}
-                />
-              )}
-              {"comment" in item && (
-                <textarea
-                  className="pm-form-textarea"
-                  placeholder="Review Comment"
-                  value={item.comment || ""}
-                  onChange={(e) => {
-                    const newItems = [...data.items];
-                    newItems[idx] = { ...newItems[idx], comment: e.target.value };
-                    handleFieldChange("items", newItems);
-                  }}
-                />
-              )}
+              <input
+                type="text"
+                className="pm-form-input"
+                placeholder="Card Title"
+                style={{ marginBottom: "6px" }}
+                value={card.title || ""}
+                onChange={(e) => {
+                  const newCards = [...data.cards];
+                  newCards[idx] = { ...newCards[idx], title: e.target.value };
+                  handleFieldChange("cards", newCards);
+                }}
+              />
+              <textarea
+                className="pm-form-textarea"
+                placeholder="Card Description"
+                style={{ marginBottom: "6px" }}
+                value={card.description || ""}
+                onChange={(e) => {
+                  const newCards = [...data.cards];
+                  newCards[idx] = { ...newCards[idx], description: e.target.value };
+                  handleFieldChange("cards", newCards);
+                }}
+              />
+              <input
+                type="text"
+                className="pm-form-input"
+                placeholder="Destination Link (/pages/contact)"
+                value={card.link || ""}
+                onChange={(e) => {
+                  const newCards = [...data.cards];
+                  newCards[idx] = { ...newCards[idx], link: e.target.value };
+                  handleFieldChange("cards", newCards);
+                }}
+              />
             </div>
           ))}
+
+          <button
+            type="button"
+            className="pm-add-item-btn"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              background: "transparent",
+              border: "1px dashed #CBD5E1",
+              borderRadius: "6px",
+              color: "#0052FF",
+              fontSize: "12px",
+              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              cursor: "pointer",
+              marginTop: "4px",
+            }}
+            onClick={() => {
+              const newCards = [
+                ...(Array.isArray(data.cards) ? data.cards : []),
+                { title: "New Card", description: "Help description", link: "/pages/contact" },
+              ];
+              handleFieldChange("cards", newCards);
+            }}
+          >
+            <Plus size={13} />
+            <span>Add Help Card</span>
+          </button>
         </div>
       )}
 
-      {/* 5. SPOTLIGHT ROWS */}
+      {/* 7. SPOTLIGHT ROWS */}
       {isFieldAllowed("rows") && Array.isArray(data.rows) && (
         <div className="pm-form-field">
           <label className="pm-form-field-label">Spotlight Rows ({data.rows.length})</label>
@@ -1122,6 +1480,7 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
                   type="text"
                   className="pm-form-input"
                   placeholder="Competitor Value (e.g. No)"
+                  style={{ marginBottom: "6px" }}
                   value={row.them || ""}
                   onChange={(e) => {
                     const newRows = [...data.rows];

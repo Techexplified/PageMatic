@@ -56,33 +56,33 @@ export default function SectionRenderer({ section, themeTokens = {} }) {
     case "COMPARISON_TABLE":
       return <RenderComparisonTable data={data} theme={themeTokens} />;
     case "COLLECTION_LIST":
-      return <RenderCollectionList data={data} theme={themeTokens} />;
+      return <RenderCollectionList data={data} theme={themeTokens} sectionId={section.id} />;
     case "FEATURED_GRID":
-      return <RenderFeaturedGrid data={data} theme={themeTokens} />;
+      return <RenderFeaturedGrid data={data} theme={themeTokens} sectionId={section.id} />;
     case "BRAND_STORY":
-      return <RenderBrandStory data={data} theme={themeTokens} />;
+      return <RenderBrandStory data={data} theme={themeTokens} sectionId={section.id} />;
     case "TESTIMONIALS":
     case "REVIEWS":
-      return <RenderTestimonials data={data} theme={themeTokens} />;
+      return <RenderTestimonials data={data} theme={themeTokens} sectionId={section.id} />;
     case "FAQ":
     case "FAQ_GROUP_SHIPPING":
     case "FAQ_GROUP_RETURNS":
     case "FAQ_GROUP_GENERAL":
-      return <RenderFAQ data={data} type={type} theme={themeTokens} />;
+      return <RenderFAQ data={data} type={type} theme={themeTokens} sectionId={section.id} />;
     case "QUICK_HELP_GRID":
-      return <RenderQuickHelpGrid data={data} theme={themeTokens} />;
+      return <RenderQuickHelpGrid data={data} theme={themeTokens} sectionId={section.id} />;
     case "CONTACT_SUPPORT_CARD":
-      return <RenderContactSupportCard data={data} theme={themeTokens} />;
+      return <RenderContactSupportCard data={data} theme={themeTokens} sectionId={section.id} />;
     case "STICKY_BUY_BAR":
-      return <RenderStickyBuyBar data={data} theme={themeTokens} />;
+      return <RenderStickyBuyBar data={data} theme={themeTokens} sectionId={section.id} />;
     case "FINAL_CTA":
-      return <RenderFinalCta data={data} theme={themeTokens} />;
+      return <RenderFinalCta data={data} theme={themeTokens} sectionId={section.id} />;
     case "NEWSLETTER_SIGNUP":
-      return <RenderNewsletterSignup data={data} theme={themeTokens} />;
+      return <RenderNewsletterSignup data={data} theme={themeTokens} sectionId={section.id} />;
     case "FOOTER":
-      return <RenderFooter data={data} theme={themeTokens} />;
+      return <RenderFooter data={data} theme={themeTokens} sectionId={section.id} />;
     default:
-      return <RenderGenericSection data={data} type={type} theme={themeTokens} />;
+      return <RenderGenericSection data={data} type={type} theme={themeTokens} sectionId={section.id} />;
   }
 }
 
@@ -101,15 +101,30 @@ function ActionButton({ buttonSchema, defaultLabel, defaultStyle = "primary", th
 
     if (actionType === "SCROLL_TO" && target) {
       e.preventDefault();
-      const el = document.querySelector(target) || document.getElementById(target.replace("#", ""));
+      const cleanTarget = target.trim();
+      let el = document.querySelector(cleanTarget);
+      if (!el && cleanTarget.startsWith("#")) {
+        el = document.getElementById(cleanTarget.substring(1));
+      }
+      if (!el && (cleanTarget.includes("featured_grid") || cleanTarget.includes("featured"))) {
+        el = document.querySelector(".pm-featured-grid") || document.querySelector("[id*='featured_grid']");
+      }
       if (el) {
-        el.scrollIntoView({ behavior: "smooth" });
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } else if (actionType === "ADD_TO_CART") {
-      // In live preview / editor: trigger feedback notification
-      showToastNotification(`🛒 Added variant (${target || "primary"}) to Cart!`);
+      e.preventDefault();
+      const cleanTarget = (target || "").replace(/gid:\/\/shopify\/ProductVariant\//i, "").replace(/gid:\/\/shopify\/Product\//i, "");
+      showToastNotification(`🛒 Added to Cart!${cleanTarget ? ` (Variant #${cleanTarget})` : ""}`);
     } else if (actionType === "BUY_NOW") {
-      showToastNotification(`⚡ Direct checkout initiated for variant (${target || "primary"})!`);
+      e.preventDefault();
+      const cleanTarget = (target || "").replace(/gid:\/\/shopify\/ProductVariant\//i, "").replace(/gid:\/\/shopify\/Product\//i, "");
+      showToastNotification(`⚡ Direct checkout initiated for ${cleanTarget ? `variant #${cleanTarget}` : "product"}!`);
+    } else if (actionType === "LINK" && target) {
+      if (typeof window !== "undefined" && window.top !== window.self) {
+        e.preventDefault();
+        showToastNotification(`🔗 Navigating to ${target}`);
+      }
     }
   };
 
@@ -926,14 +941,14 @@ function RenderComparisonTable({ data, theme }) {
 }
 
 /* ==========================================================================
-   12. COLLECTION LIST (Category cards)
+   12. COLLECTION LIST (Category cards routing to /collections/handle)
    ========================================================================== */
-function RenderCollectionList({ data, theme }) {
+function RenderCollectionList({ data, theme, sectionId }) {
   const heading = data.heading || "Shop By Category";
   const items = Array.isArray(data.items) ? data.items : [];
 
   return (
-    <section style={{ padding: "60px 32px", background: theme["--pm-bg"] || "#FFFFFF" }}>
+    <section id={sectionId || "sec_collection_list"} style={{ padding: "60px 32px", background: theme["--pm-bg"] || "#FFFFFF" }}>
       <div style={{ textAlign: "center", maxWidth: "600px", margin: "0 auto 36px" }}>
         <h2 style={{ fontSize: "28px", fontWeight: "800", color: theme["--pm-text-heading"] || "#0F172A", margin: 0 }}>
           {heading}
@@ -941,50 +956,91 @@ function RenderCollectionList({ data, theme }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px", maxWidth: "960px", margin: "0 auto" }}>
-        {items.map((cat, idx) => (
-          <div
-            key={idx}
-            style={{
-              background: theme["--pm-surface"] || "#F8FAFC",
-              borderRadius: theme["--pm-radius"] || "12px",
-              border: "1px solid #E2E8F0",
-              overflow: "hidden",
-              cursor: "pointer",
-              transition: "transform 0.2s ease",
-            }}
-          >
-            {cat.imageUrl ? (
-              <img src={cat.imageUrl} alt={cat.title} style={{ width: "100%", height: "140px", objectFit: "cover" }} />
-            ) : (
-              <div style={{ height: "140px", background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ShoppingBag size={32} color={theme["--pm-primary"] || "#0052FF"} />
+        {items.map((cat, idx) => {
+          const colUrl = cat.link || cat.url || `/collections/${cat.handle || "all"}`;
+          return (
+            <a
+              key={idx}
+              href={colUrl}
+              onClick={(e) => {
+                if (typeof window !== "undefined" && window.top !== window.self) {
+                  e.preventDefault();
+                  showToastNotification(`📁 Opening collection: ${cat.title || colUrl}`);
+                }
+              }}
+              style={{
+                textDecoration: "none",
+                display: "flex",
+                flexDirection: "column",
+                background: theme["--pm-surface"] || "#F8FAFC",
+                borderRadius: theme["--pm-radius"] || "12px",
+                border: "1px solid #E2E8F0",
+                overflow: "hidden",
+                cursor: "pointer",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+              }}
+            >
+              <div style={{
+                height: "180px",
+                background: "#FFFFFF",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "16px",
+                boxSizing: "border-box",
+                overflow: "hidden",
+              }}>
+                {cat.imageUrl ? (
+                  <img
+                    src={cat.imageUrl}
+                    alt={cat.title}
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      width: "auto",
+                      height: "auto",
+                      objectFit: "contain",
+                    }}
+                  />
+                ) : (
+                  <ShoppingBag size={36} color={theme["--pm-primary"] || "#0052FF"} />
+                )}
               </div>
-            )}
-            <div style={{ padding: "16px", textAlign: "center" }}>
-              <h3 style={{ fontSize: "16px", fontWeight: "700", color: theme["--pm-text-heading"] || "#0F172A", margin: "0 0 4px" }}>
-                {cat.title}
-              </h3>
-              <span style={{ fontSize: "12px", color: theme["--pm-primary"] || "#0052FF", fontWeight: "600" }}>
-                Explore ↗
-              </span>
-            </div>
-          </div>
-        ))}
+              <div style={{
+                padding: "16px",
+                textAlign: "center",
+                background: theme["--pm-surface"] || "#F8FAFC",
+                borderTop: "1px solid #F1F5F9",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+              }}>
+                <h3 style={{ fontSize: "16px", fontWeight: "700", color: theme["--pm-text-heading"] || "#0F172A", margin: "0 0 4px" }}>
+                  {cat.title}
+                </h3>
+                <span style={{ fontSize: "12px", color: theme["--pm-primary"] || "#0052FF", fontWeight: "700", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                  Explore ↗
+                </span>
+              </div>
+            </a>
+          );
+        })}
       </div>
     </section>
   );
 }
 
 /* ==========================================================================
-   13. FEATURED GRID (4-Product Showcase)
+   13. FEATURED GRID (All Products Showcase with Add to Cart)
    ========================================================================== */
-function RenderFeaturedGrid({ data, theme }) {
-  const heading = data.heading || "Curated Best Sellers";
+function RenderFeaturedGrid({ data, theme, sectionId }) {
+  const heading = data.heading || "Featured Best Sellers";
   const subtitle = data.subtitle || "Handpicked favorites engineered for peak performance.";
   const products = Array.isArray(data.products) ? data.products : [];
 
   return (
-    <section id="sec_featured_grid" style={{ padding: "60px 32px", background: theme["--pm-surface"] || "#F8FAFC", borderTop: "1px solid #E2E8F0" }}>
+    <section id={sectionId || "sec_featured_grid"} className="pm-featured-grid" style={{ padding: "60px 32px", background: theme["--pm-surface"] || "#F8FAFC", borderTop: "1px solid #E2E8F0" }}>
       <div style={{ textAlign: "center", maxWidth: "600px", margin: "0 auto 40px" }}>
         <h2 style={{ fontSize: "28px", fontWeight: "800", color: theme["--pm-text-heading"] || "#0F172A", margin: "0 0 8px" }}>
           {heading}
@@ -995,42 +1051,70 @@ function RenderFeaturedGrid({ data, theme }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "24px", maxWidth: "1040px", margin: "0 auto" }}>
-        {products.map((prod, idx) => (
-          <div
-            key={prod.id || idx}
-            style={{
-              background: "#FFFFFF",
-              border: "1px solid #E2E8F0",
-              borderRadius: theme["--pm-radius"] || "12px",
-              padding: "16px",
-              display: "flex",
-              flexDirection: "column",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
-            }}
-          >
-            <div style={{ height: "160px", background: "#F8FAFC", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "14px" }}>
-              {prod.imageUrl ? (
-                <img src={prod.imageUrl} alt={prod.title} style={{ maxWidth: "100%", maxHeight: "140px", objectFit: "contain" }} />
-              ) : (
-                <ShoppingBag size={28} color="#94A3B8" />
-              )}
+        {products.map((prod, idx) => {
+          const targetVariantId = prod.variantId || prod.primaryVariantId || prod.id || "";
+          const btnSchema = prod.buttonAction || {
+            label: "Add to Cart",
+            actionType: "ADD_TO_CART",
+            target: targetVariantId,
+            variantId: targetVariantId,
+            style: "primary",
+          };
+
+          return (
+            <div
+              key={prod.id || idx}
+              style={{
+                background: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: theme["--pm-radius"] || "12px",
+                padding: "16px",
+                display: "flex",
+                flexDirection: "column",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+              }}
+            >
+              <div style={{
+                height: "180px",
+                background: "#F8FAFC",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "12px",
+                marginBottom: "14px",
+                boxSizing: "border-box",
+                overflow: "hidden",
+              }}>
+                {prod.imageUrl ? (
+                  <img
+                    src={prod.imageUrl}
+                    alt={prod.title}
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      width: "auto",
+                      height: "auto",
+                      objectFit: "contain",
+                    }}
+                  />
+                ) : (
+                  <ShoppingBag size={32} color="#94A3B8" />
+                )}
+              </div>
+
+              <h3 style={{ fontSize: "15px", fontWeight: "700", color: theme["--pm-text-heading"] || "#0F172A", margin: "0 0 6px", flex: 1 }}>
+                {prod.title}
+              </h3>
+
+              <div style={{ fontSize: "16px", fontWeight: "800", color: theme["--pm-primary"] || "#0052FF", marginBottom: "12px" }}>
+                {prod.price}
+              </div>
+
+              <ActionButton buttonSchema={btnSchema} defaultLabel="Add to Cart" theme={theme} />
             </div>
-
-            <h3 style={{ fontSize: "15px", fontWeight: "700", color: theme["--pm-text-heading"] || "#0F172A", margin: "0 0 6px", flex: 1 }}>
-              {prod.title}
-            </h3>
-
-            <div style={{ fontSize: "16px", fontWeight: "800", color: theme["--pm-primary"] || "#0052FF", marginBottom: "12px" }}>
-              {prod.price}
-            </div>
-
-            {prod.buttonAction ? (
-              <ActionButton buttonSchema={prod.buttonAction} defaultLabel="Add to Cart" theme={theme} />
-            ) : (
-              <ActionButton buttonSchema={{ label: "Add to Cart", actionType: "ADD_TO_CART", target: prod.id, style: "primary" }} theme={theme} />
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -1325,25 +1409,31 @@ function RenderStickyBuyBar({ data, theme }) {
 /* ==========================================================================
    20. FINAL CTA BANNER
    ========================================================================== */
-function RenderFinalCta({ data, theme }) {
+function RenderFinalCta({ data, theme, sectionId }) {
   const heading = data.heading || "Ready to Elevate Your Performance?";
   const subheading = data.subheading || "Claim your limited-time discount before promotion ends.";
+  const btn = data.buttonPrimary || data.buttonAction || {
+    label: "Explore All Collections",
+    actionType: "LINK",
+    target: "/collections",
+    style: "secondary",
+  };
 
   return (
-    <section style={{
+    <section id={sectionId || "sec_final_cta"} style={{
       padding: "60px 32px",
       background: theme["--pm-primary"] || "#0052FF",
       color: "#FFFFFF",
       textAlign: "center",
     }}>
       <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-        <h2 style={{ fontSize: "32px", fontWeight: "800", margin: "0 0 12px", letterSpacing: "-0.02em" }}>
+        <h2 style={{ fontSize: "32px", fontWeight: "800", margin: "0 0 12px", letterSpacing: "-0.02em", color: "#FFFFFF" }}>
           {heading}
         </h2>
         <p style={{ fontSize: "16px", color: "rgba(255, 255, 255, 0.9)", margin: "0 0 28px" }}>
           {subheading}
         </p>
-        <ActionButton buttonSchema={data.buttonPrimary || { label: "Claim Offer Now", actionType: "BUY_NOW", style: "secondary" }} theme={theme} />
+        <ActionButton buttonSchema={btn} defaultLabel="Explore All Collections" theme={theme} />
       </div>
     </section>
   );

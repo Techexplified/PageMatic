@@ -33,6 +33,7 @@ import EditorPreviewCanvas from "../components/editor/EditorPreviewCanvas";
 import PublishModal from "../components/editor/PublishModal";
 import PageSelectionScreen from "../components/editor/PageSelectionScreen";
 import { CheckCircle2, AlertTriangle, Info, X } from "lucide-react";
+import "../styles/dashboard.css";
 import "../styles/editor.css";
 
 // ============================================================================
@@ -666,7 +667,8 @@ export default function StudioEditor() {
         setPage(sanitized);
         setPageTitle(loaderPage.title || "Untitled Page");
       }
-    } else if (!loadedPageIdRef.current && typeof window !== "undefined") {
+    } else if (pageId && pageId.startsWith("temp") && typeof window !== "undefined") {
+      // ONLY load from temporary storage if URL explicitly specifies pageId=temp (fresh generation)
       try {
         const cached =
           sessionStorage.getItem("pagematic_generated_page") ||
@@ -674,7 +676,7 @@ export default function StudioEditor() {
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && parsed.contentJson) {
-            loadedPageIdRef.current = parsed.id || "cached";
+            loadedPageIdRef.current = parsed.id || "temp";
             const defaultTokens =
               STYLE_THEME_TOKENS[parsed.stylePreset] || STYLE_THEME_TOKENS.minimal;
             setPage({
@@ -692,13 +694,16 @@ export default function StudioEditor() {
       } catch (e) {
         console.warn("Storage parse error in editor:", e);
       }
+      loadedPageIdRef.current = null;
       setPage(null);
       setPageTitle("");
-    } else if (!loaderPage && !loadedPageIdRef.current) {
+    } else {
+      // No pageId provided in URL -> Reset state so PageSelectionScreen is displayed
+      loadedPageIdRef.current = null;
       setPage(null);
       setPageTitle("");
     }
-  }, [loaderPage]);
+  }, [loaderPage, pageId]);
 
   // Sync state when page is saved to database
   useEffect(() => {

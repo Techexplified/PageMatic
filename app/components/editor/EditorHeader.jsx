@@ -34,9 +34,9 @@ export default function EditorHeader({
     <header className="pm-editor-header">
       {/* Left: Back Link & Page Title */}
       <div className="pm-editor-header-left">
-        <Link to="/app/dashboard" className="pm-editor-back-btn" title="Back to Dashboard">
+        <Link to="/app/editor" className="pm-editor-back-btn" title="Back to All Pages">
           <ArrowLeft size={15} />
-          <span>Dashboard</span>
+          <span>Pages</span>
         </Link>
 
         <div style={{ width: "1px", height: "24px", background: "#E2E8F0" }} />

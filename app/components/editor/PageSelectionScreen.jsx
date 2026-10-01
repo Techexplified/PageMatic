@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import {
   Search,
@@ -7,11 +7,11 @@ import {
   Home,
   HelpCircle,
   Layout,
-  Info,
-  X,
   Layers,
-  Sparkles,
 } from "lucide-react";
+import TokenBadge from "../TokenBadge";
+import "../../styles/dashboard.css";
+import "../../styles/editor.css";
 
 // Format page type label
 const formatPageType = (type) => {
@@ -76,21 +76,6 @@ const formatDate = (dateString) => {
 
 export default function PageSelectionScreen({ pages = [], shopSettings }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [isTokenInfoOpen, setIsTokenInfoOpen] = useState(false);
-  const tokenPopoverRef = useRef(null);
-
-  // Close popover when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (tokenPopoverRef.current && !tokenPopoverRef.current.contains(event.target)) {
-        setIsTokenInfoOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   const filteredPages = pages.filter((p) => {
     const q = searchQuery.toLowerCase();
@@ -104,7 +89,7 @@ export default function PageSelectionScreen({ pages = [], shopSettings }) {
   return (
     <div className="pm-page-select-screen">
       <div className="pm-page-select-container">
-        {/* 1. Header Section (Matching Screenshot Pattern) */}
+        {/* 1. Header Section */}
         <div className="pm-dash-header">
           <div className="pm-dash-title-group">
             <h1 className="pm-dash-title">Studio Editor</h1>
@@ -112,74 +97,7 @@ export default function PageSelectionScreen({ pages = [], shopSettings }) {
           </div>
 
           {/* Dual Gold & Silver Token Counter Pill */}
-          <div className="pm-token-group-wrapper" ref={tokenPopoverRef}>
-            <div className="pm-token-pill">
-              {/* Gold Tokens (Page Credits) */}
-              <div className="pm-token-item" title="Full-Page Generation Credits">
-                <div className="pm-token-coin--gold">G</div>
-                <span className="pm-token-count">{shopSettings?.pageCredits ?? 20}</span>
-                <span className="pm-token-label">credits</span>
-              </div>
-
-              <div className="pm-token-divider" />
-
-              {/* Silver Tokens (Micro-Edits) */}
-              <div className="pm-token-item" title="Section Re-rolls & Micro-Edits">
-                <div className="pm-token-coin--silver">S</div>
-                <span className="pm-token-count">{shopSettings?.iterationTokens ?? 100}</span>
-                <span className="pm-token-label">tokens</span>
-              </div>
-
-              {/* Info Icon Button */}
-              <button
-                type="button"
-                onClick={() => setIsTokenInfoOpen(!isTokenInfoOpen)}
-                className={`pm-token-info-btn ${isTokenInfoOpen ? "pm-token-info-btn--active" : ""}`}
-                title="What are Gold and Silver tokens?"
-              >
-                <Info size={16} />
-              </button>
-            </div>
-
-            {/* Info Popover Modal */}
-            {isTokenInfoOpen && (
-              <div className="pm-token-popover">
-                <div className="pm-popover-header">
-                  <h4 className="pm-popover-title">Token Balance & Usage</h4>
-                  <button
-                    type="button"
-                    onClick={() => setIsTokenInfoOpen(false)}
-                    className="pm-popover-close"
-                    title="Close"
-                  >
-                    <X size={15} />
-                  </button>
-                </div>
-
-                <div className="pm-popover-body">
-                  <div className="pm-popover-item">
-                    <div className="pm-token-coin--gold" style={{ flexShrink: 0 }}>G</div>
-                    <div className="pm-popover-item-content">
-                      <h5 className="pm-popover-item-title">Page Credits (Gold)</h5>
-                      <p className="pm-popover-item-desc">
-                        Used for generating complete full-page store layouts with AI (5 credits per full page).
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pm-popover-item">
-                    <div className="pm-token-coin--silver" style={{ flexShrink: 0 }}>S</div>
-                    <div className="pm-popover-item-content">
-                      <h5 className="pm-popover-item-title">Silver Tokens</h5>
-                      <p className="pm-popover-item-desc">
-                        Used for section re-rolls, headline rewrites, and AI micro-edits in the studio editor (2 tokens per edit).
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <TokenBadge shopSettings={shopSettings} />
         </div>
 
         {/* 2. Main Selection Card */}

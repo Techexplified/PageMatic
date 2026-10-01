@@ -70,16 +70,6 @@ export async function generateAndPersistPage({
     userPrompt,
   });
 
-  // Deduct Page Credits upon successful AI generation
-  const updatedSettings = await db.shopSettings.update({
-    where: { id: settings.id },
-    data: {
-      pageCredits: {
-        decrement: PAGE_COST_CREDITS,
-      },
-    },
-  });
-
   // 3. STEP 2: Assemble Deterministic Page Schema with Image & Variant Bindings (Pass 2)
   console.log(`[PageGenerator] STEP 2: Assembling layout & section tree for: ${shop} (Type: ${pageType})`);
   const sanitizedContent = assemblePageFromPlan({
@@ -112,6 +102,16 @@ export async function generateAndPersistPage({
       seoDescription: sanitizedContent.seoDescription || null,
       contentJson: sanitizedContent,
       status: "DRAFT",
+    },
+  });
+
+  // 6. Deduct Page Credits upon complete and successful page persistence
+  const updatedSettings = await db.shopSettings.update({
+    where: { id: settings.id },
+    data: {
+      pageCredits: {
+        decrement: PAGE_COST_CREDITS,
+      },
     },
   });
 

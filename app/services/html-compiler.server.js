@@ -84,6 +84,61 @@ export function compilePageToHtml(contentJson = {}) {
 
   return `
 <!-- PageMatic Storefront Page -->
+<style>
+  /* 1. Break out of Shopify Theme container constraints (Dawn, Sense, Horizon, Debut, etc.) */
+  html:has(#pagematic-root),
+  body:has(#pagematic-root) {
+    overflow-x: hidden !important;
+  }
+
+  body:has(#pagematic-root) .page-width,
+  body:has(#pagematic-root) .page-width--narrow,
+  body:has(#pagematic-root) .container,
+  body:has(#pagematic-root) .wrapper,
+  body:has(#pagematic-root) .main-content,
+  body:has(#pagematic-root) .content-for-layout,
+  body:has(#pagematic-root) .section-template--page-padding,
+  body:has(#pagematic-root) .rte,
+  body:has(#pagematic-root) main {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* 2. Hide redundant auto-generated theme page titles on PageMatic pages */
+  body:has(#pagematic-root) .main-page-title,
+  body:has(#pagematic-root) .page-title,
+  body:has(#pagematic-root) .page-header,
+  body:has(#pagematic-root) .section-header,
+  body:has(#pagematic-root) h1.main-page-title,
+  body:has(#pagematic-root) h1.page-title {
+    display: none !important;
+  }
+
+  /* 3. Universal Full-Bleed Breakout Fallback */
+  #pagematic-root {
+    width: 100vw !important;
+    position: relative !important;
+    left: 50% !important;
+    right: 50% !important;
+    margin-left: -50vw !important;
+    margin-right: -50vw !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .pm-action-btn:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+  }
+  .pm-action-btn:active {
+    transform: translateY(0);
+  }
+</style>
+
 <div
   id="pagematic-root"
   class="pagematic-page-container"
@@ -94,6 +149,46 @@ export function compilePageToHtml(contentJson = {}) {
 
 <script>
 (function() {
+  // 0. Auto-normalize theme layout and suppress redundant theme page headers
+  function normalizeThemeContainers() {
+    var root = document.getElementById('pagematic-root');
+    if (!root) return;
+
+    var cur = root.parentElement;
+    while (cur && cur !== document.body && cur !== document.documentElement) {
+      cur.style.setProperty('max-width', '100%', 'important');
+      cur.style.setProperty('width', '100%', 'important');
+      cur.style.setProperty('padding-left', '0px', 'important');
+      cur.style.setProperty('padding-right', '0px', 'important');
+      cur.style.setProperty('margin-left', '0px', 'important');
+      cur.style.setProperty('margin-right', '0px', 'important');
+
+      var parent = cur.parentElement;
+      if (parent) {
+        var sibs = parent.children;
+        for (var s = 0; s < sibs.length; s++) {
+          var sib = sibs[s];
+          if (sib !== cur && (
+            sib.classList.contains('main-page-title') ||
+            sib.classList.contains('page-title') ||
+            sib.classList.contains('section-header') ||
+            sib.classList.contains('page-header') ||
+            (sib.tagName === 'H1' && !root.contains(sib))
+          )) {
+            sib.style.setProperty('display', 'none', 'important');
+          }
+        }
+      }
+      cur = parent;
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', normalizeThemeContainers);
+  } else {
+    normalizeThemeContainers();
+  }
+
   function showPmToast(msg, isSuccess) {
     var existing = document.getElementById('pm-storefront-toast');
     if (existing) existing.remove();

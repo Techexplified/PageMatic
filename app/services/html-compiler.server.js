@@ -650,11 +650,11 @@ function compileSection(section, theme) {
         { title: "2-Year Manufacturer Warranty", description: "Crafted to withstand peak intensity" },
       ];
       return `
-        <section id="${sectionId}" class="pm-section pm-trust-badges" style="padding: 40px 32px; background: #ffffff; border-bottom: 1px solid #e2e8f0;">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; max-width: 1000px; margin: 0 auto;">
+        <section id="${sectionId}" class="pm-section pm-trust-badges" style="padding: 44px 32px; background: var(--pm-surface); border-top: 1px solid rgba(0,0,0,0.06); border-bottom: 1px solid rgba(0,0,0,0.06);">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; max-width: 1040px; margin: 0 auto;">
             ${items.map((item, idx) => `
-              <div style="display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: var(--pm-surface); border-radius: var(--pm-radius); border: 1px solid #e2e8f0;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--pm-primary); font-size: 18px; flex-shrink: 0;">
+              <div style="display: flex; align-items: center; gap: 16px; padding: 18px 22px; background: var(--pm-bg); border-radius: var(--pm-radius); border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--pm-primary); font-size: 20px; flex-shrink: 0;">
                   ${idx === 0 ? "🛡️" : idx === 1 ? "🚚" : "🏆"}
                 </div>
                 <div>
@@ -740,20 +740,20 @@ function compileSection(section, theme) {
       const btn = data.buttonPrimary || data.buttonAction || { label: "Add to Cart", actionType: "ADD_TO_CART", style: "primary" };
 
       return `
-        <section id="${sectionId}" class="pm-section pm-product-showcase" style="padding: 60px 32px; background: #ffffff; border-top: 1px solid #e2e8f0;">
-          <div style="max-width: 800px; margin: 0 auto; background: var(--pm-surface); border: 1px solid #e2e8f0; border-radius: var(--pm-radius); padding: 36px; display: grid; grid-template-columns: ${imageUrl ? "1fr 1.2fr" : "1fr"}; gap: 36px; align-items: center;">
+        <section id="${sectionId}" class="pm-section pm-product-showcase" style="padding: 70px 32px; background: var(--pm-surface); border-top: 1px solid rgba(0,0,0,0.06); border-bottom: 1px solid rgba(0,0,0,0.06);">
+          <div style="max-width: 920px; margin: 0 auto; background: var(--pm-bg); border: 1px solid rgba(0,0,0,0.08); border-radius: var(--pm-radius); padding: 40px; display: grid; grid-template-columns: ${imageUrl ? "1fr 1.2fr" : "1fr"}; gap: 40px; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
             ${imageUrl ? `
-              <div style="text-align: center; background: #ffffff; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                <img src="${imageUrl}" alt="${title}" style="max-width: 100%; max-height: 240px; object-fit: contain;" />
+              <div style="text-align: center; background: var(--pm-surface); padding: 24px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; min-height: 260px;">
+                <img src="${imageUrl}" alt="${title}" style="max-width: 100%; max-height: 260px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.06));" />
               </div>
             ` : ""}
             <div>
               <span style="font-size: 11px; font-weight: 800; color: var(--pm-primary); letter-spacing: 0.08em; text-transform: uppercase;">Spotlight Offer</span>
-              <h2 style="font-size: 24px; font-weight: 800; color: var(--pm-text-heading); margin: 6px 0 10px;">${title}</h2>
-              <div style="font-size: 22px; font-weight: 800; color: var(--pm-primary); margin-bottom: 12px;">${price}</div>
-              <p style="font-size: 14px; line-height: 1.6; color: var(--pm-text-body); margin-bottom: 18px;">${description}</p>
-              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
-                ${features.map((feat) => `<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155;"><span style="color: #16a34a; font-weight: bold;">✓</span><span>${escapeHtml(feat)}</span></div>`).join("")}
+              <h2 style="font-size: 26px; font-weight: 800; color: var(--pm-text-heading); margin: 6px 0 10px;">${title}</h2>
+              <div style="font-size: 24px; font-weight: 800; color: var(--pm-primary); margin-bottom: 12px;">${price}</div>
+              <p style="font-size: 14.5px; line-height: 1.6; color: var(--pm-text-body); margin-bottom: 20px;">${description}</p>
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
+                ${features.map((feat) => `<div style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--pm-text-heading);"><span style="color: #16a34a; font-weight: bold;">✓</span><span>${escapeHtml(feat)}</span></div>`).join("")}
               </div>
               ${renderButtonHtml(btn, "Claim Offer", "primary")}
             </div>
@@ -865,7 +865,7 @@ function compileSection(section, theme) {
       const bodyText = escapeHtml(data.bodyText || "Every product in our catalog is conceived, tested, and refined in real-world mountain conditions.");
       const imageUrl = data.imageUrl ? escapeHtml(data.imageUrl) : null;
       return `
-        <section id="${sectionId}" class="pm-section pm-brand-story" style="padding: 60px 32px; background: #ffffff; border-top: 1px solid #e2e8f0;">
+        <section id="${sectionId}" class="pm-section pm-brand-story" style="padding: 60px 32px; background: var(--pm-bg); border-top: 1px solid rgba(0,0,0,0.06);">
           <div style="max-width: 960px; margin: 0 auto; display: grid; grid-template-columns: ${imageUrl ? "1.1fr 0.9fr" : "1fr"}; gap: 40px; align-items: center;">
             <div>
               <span style="font-size: 11px; font-weight: 800; color: var(--pm-primary); letter-spacing: 0.08em; text-transform: uppercase;">Our Ethos & Origin</span>
@@ -875,7 +875,7 @@ function compileSection(section, theme) {
               <span style="font-size: 13px; font-weight: 700; color: #0f172a;">— ${founderName}</span>
             </div>
             ${imageUrl ? `
-              <div style="text-align: center; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
+              <div style="text-align: center; background: var(--pm-surface); padding: 16px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.06);">
                 <img src="${imageUrl}" alt="${heading}" style="max-width: 100%; max-height: 280px; object-fit: contain;" />
               </div>
             ` : ""}
@@ -945,10 +945,10 @@ function compileSection(section, theme) {
     case "QUICK_HELP_GRID": {
       const cards = Array.isArray(data.cards) ? data.cards : [];
       return `
-        <section id="${sectionId}" class="pm-section pm-quick-help" style="padding: 40px 32px; background: #ffffff; border-bottom: 1px solid #e2e8f0;">
+        <section id="${sectionId}" class="pm-section pm-quick-help" style="padding: 44px 32px; background: var(--pm-surface); border-bottom: 1px solid rgba(0,0,0,0.06);">
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; max-width: 860px; margin: 0 auto;">
             ${cards.map((card, idx) => `
-              <a href="${escapeHtml(card.link || "#")}" style="display: flex; align-items: center; gap: 14px; padding: 20px; background: var(--pm-surface); border: 1px solid #e2e8f0; border-radius: var(--pm-radius); text-decoration: none; color: inherit;">
+              <a href="${escapeHtml(card.link || "#")}" style="display: flex; align-items: center; gap: 14px; padding: 20px; background: var(--pm-bg); border: 1px solid rgba(0,0,0,0.06); border-radius: var(--pm-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.03); text-decoration: none; color: inherit; transition: transform 0.15s ease;">
                 <div style="width: 42px; height: 42px; border-radius: 10px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--pm-primary); font-size: 20px; flex-shrink: 0;">
                   ${idx === 0 ? "🚚" : idx === 1 ? "🔄" : "✉️"}
                 </div>

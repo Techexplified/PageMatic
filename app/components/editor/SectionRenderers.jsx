@@ -655,22 +655,23 @@ function RenderTrustBadges({ data, theme }) {
   ];
 
   return (
-    <section style={{ padding: "40px 32px", background: "#FFFFFF", borderBottom: "1px solid #E2E8F0" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "24px", maxWidth: "1000px", margin: "0 auto" }}>
+    <section style={{ padding: "44px 32px", background: theme["--pm-surface"] || "#F8FAFC", borderTop: "1px solid rgba(0,0,0,0.06)", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px", maxWidth: "1040px", margin: "0 auto" }}>
         {items.map((item, idx) => (
           <div key={idx} style={{
             display: "flex",
             alignItems: "center",
             gap: "16px",
-            padding: "16px 20px",
-            background: theme["--pm-surface"] || "#F8FAFC",
-            borderRadius: theme["--pm-radius"] || "10px",
-            border: "1px solid #E2E8F0",
+            padding: "18px 22px",
+            background: theme["--pm-bg"] || "#FFFFFF",
+            borderRadius: theme["--pm-radius"] || "12px",
+            border: "1px solid rgba(0,0,0,0.06)",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
           }}>
             <div style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "50%",
+              width: "42px",
+              height: "42px",
+              borderRadius: "10px",
               background: "#EFF6FF",
               display: "flex",
               alignItems: "center",
@@ -837,22 +838,23 @@ function RenderProductShowcase({ data, theme }) {
   const imageUrl = data.imageUrl;
 
   return (
-    <section style={{ padding: "60px 32px", background: "#FFFFFF", borderTop: "1px solid #E2E8F0" }}>
+    <section style={{ padding: "70px 32px", background: theme["--pm-surface"] || "#F8FAFC", borderTop: "1px solid rgba(0,0,0,0.06)", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
       <div style={{
-        maxWidth: "800px",
+        maxWidth: "920px",
         margin: "0 auto",
-        background: theme["--pm-surface"] || "#F8FAFC",
-        border: "1px solid #E2E8F0",
+        background: theme["--pm-bg"] || "#FFFFFF",
+        border: "1px solid rgba(0,0,0,0.08)",
         borderRadius: theme["--pm-radius"] || "16px",
-        padding: "36px",
+        padding: "40px",
         display: "grid",
         gridTemplateColumns: imageUrl ? "1fr 1.2fr" : "1fr",
-        gap: "36px",
+        gap: "40px",
         alignItems: "center",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
       }}>
         {imageUrl && (
-          <div style={{ textAlign: "center", background: "#FFFFFF", padding: "16px", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
-            <img src={imageUrl} alt={title} style={{ maxWidth: "100%", maxHeight: "240px", objectFit: "contain" }} />
+          <div style={{ textAlign: "center", background: theme["--pm-surface"] || "#F8FAFC", padding: "24px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "260px" }}>
+            <img src={imageUrl} alt={title} style={{ maxWidth: "100%", maxHeight: "260px", objectFit: "contain", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.06))" }} />
           </div>
         )}
 
@@ -860,20 +862,20 @@ function RenderProductShowcase({ data, theme }) {
           <span style={{ fontSize: "11px", fontWeight: "800", color: theme["--pm-primary"] || "#0052FF", letterSpacing: "0.08em", textTransform: "uppercase" }}>
             Spotlight Offer
           </span>
-          <h2 style={{ fontSize: "24px", fontWeight: "800", color: theme["--pm-text-heading"] || "#0F172A", margin: "6px 0 10px" }}>
+          <h2 style={{ fontSize: "26px", fontWeight: "800", color: theme["--pm-text-heading"] || "#0F172A", margin: "6px 0 10px" }}>
             {title}
           </h2>
-          <div style={{ fontSize: "22px", fontWeight: "800", color: theme["--pm-primary"] || "#0052FF", marginBottom: "12px" }}>
+          <div style={{ fontSize: "24px", fontWeight: "800", color: theme["--pm-primary"] || "#0052FF", marginBottom: "12px" }}>
             {price}
           </div>
-          <p style={{ fontSize: "14px", lineHeight: "1.6", color: theme["--pm-text-body"] || "#475569", marginBottom: "18px" }}>
+          <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: theme["--pm-text-body"] || "#475569", marginBottom: "20px" }}>
             {description}
           </p>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "24px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
             {features.map((feat, idx) => (
-              <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#334155" }}>
-                <Check size={14} color="#16A34A" strokeWidth={3} />
+              <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: theme["--pm-text-heading"] || "#334155" }}>
+                <Check size={15} color="#16A34A" strokeWidth={3} />
                 <span>{feat}</span>
               </div>
             ))}
@@ -1131,7 +1133,7 @@ function RenderBrandStory({ data, theme }) {
   const imageUrl = data.imageUrl;
 
   return (
-    <section style={{ padding: "60px 32px", background: "#FFFFFF", borderTop: "1px solid #E2E8F0" }}>
+    <section style={{ padding: "60px 32px", background: theme["--pm-bg"] || "#FFFFFF", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
       <div style={{
         maxWidth: "960px",
         margin: "0 auto",
@@ -1167,7 +1169,7 @@ function RenderBrandStory({ data, theme }) {
         </div>
 
         {imageUrl && (
-          <div style={{ textAlign: "center", background: "#F8FAFC", padding: "16px", borderRadius: "12px", border: "1px solid #E2E8F0" }}>
+          <div style={{ textAlign: "center", background: theme["--pm-surface"] || "#F8FAFC", padding: "16px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.06)" }}>
             <img src={imageUrl} alt={heading} style={{ maxWidth: "100%", maxHeight: "280px", objectFit: "contain" }} />
           </div>
         )}
@@ -1297,7 +1299,7 @@ function RenderQuickHelpGrid({ data, theme }) {
   const cards = Array.isArray(data.cards) ? data.cards : [];
 
   return (
-    <section style={{ padding: "40px 32px", background: "#FFFFFF", borderBottom: "1px solid #E2E8F0" }}>
+    <section style={{ padding: "44px 32px", background: theme["--pm-surface"] || "#F8FAFC", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px", maxWidth: "860px", margin: "0 auto" }}>
         {cards.map((card, idx) => (
           <a
@@ -1308,9 +1310,10 @@ function RenderQuickHelpGrid({ data, theme }) {
               alignItems: "center",
               gap: "14px",
               padding: "20px",
-              background: theme["--pm-surface"] || "#F8FAFC",
-              border: "1px solid #E2E8F0",
+              background: theme["--pm-bg"] || "#FFFFFF",
+              border: "1px solid rgba(0,0,0,0.06)",
               borderRadius: theme["--pm-radius"] || "12px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
               textDecoration: "none",
               color: "inherit",
               transition: "transform 0.15s ease",

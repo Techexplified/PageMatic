@@ -1100,17 +1100,19 @@ export default function StudioEditor() {
       </div>
 
       {/* Publish / Unpublish Confirmation & Live Link Modal */}
-      <PublishModal
-        isOpen={isPublishModalOpen}
-        onClose={() => setIsPublishModalOpen(false)}
-        page={page}
-        shop={shop}
-        onConfirmPublish={handleConfirmPublish}
-        onConfirmUnpublish={handleConfirmUnpublish}
-        isPublishing={isPublishing}
-        isUnpublishing={isUnpublishing}
-        publishResult={publishFetcher.data}
-      />
+      {isPublishModalOpen && (
+        <PublishModal
+          isOpen={isPublishModalOpen}
+          onClose={() => setIsPublishModalOpen(false)}
+          page={page}
+          shop={shop}
+          onConfirmPublish={handleConfirmPublish}
+          onConfirmUnpublish={handleConfirmUnpublish}
+          isPublishing={isPublishing}
+          isUnpublishing={isUnpublishing}
+          publishResult={publishFetcher.data}
+        />
+      )}
 
       {/* Floating Toast Notification */}
       {toast && (

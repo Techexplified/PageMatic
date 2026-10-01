@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   UploadCloud,
@@ -27,8 +27,21 @@ export default function PublishModal({
 }) {
   const [copied, setCopied] = useState(false);
   const [confirmingUnpublish, setConfirmingUnpublish] = useState(false);
+  const [justUnpublished, setJustUnpublished] = useState(false);
+
+  useEffect(() => {
+    if (isUnpublishing) {
+      setJustUnpublished(true);
+    }
+  }, [isUnpublishing]);
 
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    setConfirmingUnpublish(false);
+    setJustUnpublished(false);
+    if (onClose) onClose();
+  };
 
   const isAlreadyPublished = page?.status === "PUBLISHED";
   const cleanShop = (shop || "").replace(/^https?:\/\//, "").replace(/\/+$/, "");
@@ -50,6 +63,7 @@ export default function PublishModal({
     if (!confirmingUnpublish) {
       setConfirmingUnpublish(true);
     } else {
+      setJustUnpublished(true);
       if (onConfirmUnpublish) onConfirmUnpublish();
       setConfirmingUnpublish(false);
     }
@@ -70,7 +84,7 @@ export default function PublishModal({
         animation: "pmModalFadeIn 0.2s ease",
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget && !isBusy) onClose();
+        if (e.target === e.currentTarget && !isBusy) handleClose();
       }}
     >
       <div
@@ -123,7 +137,7 @@ export default function PublishModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isBusy}
             style={{
               background: "transparent",
@@ -140,7 +154,7 @@ export default function PublishModal({
 
         {/* Modal Body */}
         <div style={{ padding: "24px" }}>
-          {publishResult?.actionType === "UNPUBLISH" && publishResult?.success ? (
+          {justUnpublished && publishResult?.actionType === "UNPUBLISH" && publishResult?.success ? (
             /* UNPUBLISHED SUCCESS STATE */
             <div style={{ display: "flex", flexDirection: "column", gap: "18px", textAlign: "center" }}>
               <div
@@ -170,7 +184,7 @@ export default function PublishModal({
 
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 style={{
                   padding: "12px",
                   borderRadius: "10px",
@@ -416,7 +430,7 @@ export default function PublishModal({
                 <div style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={handleClose}
                     disabled={isBusy}
                     style={{
                       flex: 1,

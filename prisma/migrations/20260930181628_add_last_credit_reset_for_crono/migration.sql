@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "ShopSettings" ADD COLUMN     "lastCreditResetAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

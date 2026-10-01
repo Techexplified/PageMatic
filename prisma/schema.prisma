@@ -39,6 +39,7 @@ model ShopSettings {
   pageCredits     Int          @default(20) // Monthly full-page credits
   iterationTokens Int          @default(100) // Micro-edit tokens
   isOnboarded     Boolean      @default(false)
+  lastCreditResetAt DateTime @default(now())
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   pages           Page[]

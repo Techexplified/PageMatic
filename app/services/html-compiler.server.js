@@ -85,21 +85,27 @@ export function compilePageToHtml(contentJson = {}) {
   return `
 <!-- PageMatic Storefront Page -->
 <style>
-  /* 1. Break out of Shopify Theme container constraints (Dawn, Sense, Horizon, Debut, etc.) */
+  /* 1. Break out of Shopify Theme container constraints (Dawn, Horizon, Sense, Prestige, Debut, etc.) */
   html:has(#pagematic-root),
   body:has(#pagematic-root) {
     overflow-x: hidden !important;
   }
 
+  body:has(#pagematic-root) main,
+  body:has(#pagematic-root) #MainContent,
+  body:has(#pagematic-root) .main-content,
+  body:has(#pagematic-root) .content-for-layout,
   body:has(#pagematic-root) .page-width,
   body:has(#pagematic-root) .page-width--narrow,
   body:has(#pagematic-root) .container,
+  body:has(#pagematic-root) .container--narrow,
   body:has(#pagematic-root) .wrapper,
-  body:has(#pagematic-root) .main-content,
-  body:has(#pagematic-root) .content-for-layout,
-  body:has(#pagematic-root) .section-template--page-padding,
   body:has(#pagematic-root) .rte,
-  body:has(#pagematic-root) main {
+  body:has(#pagematic-root) .page-content,
+  body:has(#pagematic-root) [class*="section-template"],
+  body:has(#pagematic-root) [class*="page-width"],
+  body:has(#pagematic-root) [class*="container"],
+  body:has(#pagematic-root) [class*="page-content"] {
     max-width: 100% !important;
     width: 100% !important;
     padding-left: 0 !important;
@@ -108,26 +114,26 @@ export function compilePageToHtml(contentJson = {}) {
     margin-right: 0 !important;
   }
 
-  /* 2. Hide redundant auto-generated theme page titles on PageMatic pages */
+  /* 2. Hide redundant auto-generated theme page titles outside PageMatic */
   body:has(#pagematic-root) .main-page-title,
   body:has(#pagematic-root) .page-title,
   body:has(#pagematic-root) .page-header,
   body:has(#pagematic-root) .section-header,
-  body:has(#pagematic-root) h1.main-page-title,
-  body:has(#pagematic-root) h1.page-title {
+  body:has(#pagematic-root) .title-wrapper,
+  body:has(#pagematic-root) [class*="page-title"],
+  body:has(#pagematic-root) [class*="section-header"],
+  body:has(#pagematic-root) [class*="title-wrapper"],
+  body:has(#pagematic-root) header:not(#pagematic-root header) {
     display: none !important;
   }
 
-  /* 3. Universal Full-Bleed Breakout Fallback */
   #pagematic-root {
-    width: 100vw !important;
-    position: relative !important;
-    left: 50% !important;
-    right: 50% !important;
-    margin-left: -50vw !important;
-    margin-right: -50vw !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
     box-sizing: border-box !important;
-    overflow-x: hidden !important;
+    display: block !important;
   }
 
   .pm-action-btn:hover {
@@ -154,6 +160,7 @@ export function compilePageToHtml(contentJson = {}) {
     var root = document.getElementById('pagematic-root');
     if (!root) return;
 
+    // A. Strip width/padding constraints on all parent ancestors
     var cur = root.parentElement;
     while (cur && cur !== document.body && cur !== document.documentElement) {
       cur.style.setProperty('max-width', '100%', 'important');
@@ -162,25 +169,17 @@ export function compilePageToHtml(contentJson = {}) {
       cur.style.setProperty('padding-right', '0px', 'important');
       cur.style.setProperty('margin-left', '0px', 'important');
       cur.style.setProperty('margin-right', '0px', 'important');
-
-      var parent = cur.parentElement;
-      if (parent) {
-        var sibs = parent.children;
-        for (var s = 0; s < sibs.length; s++) {
-          var sib = sibs[s];
-          if (sib !== cur && (
-            sib.classList.contains('main-page-title') ||
-            sib.classList.contains('page-title') ||
-            sib.classList.contains('section-header') ||
-            sib.classList.contains('page-header') ||
-            (sib.tagName === 'H1' && !root.contains(sib))
-          )) {
-            sib.style.setProperty('display', 'none', 'important');
-          }
-        }
-      }
-      cur = parent;
+      cur = cur.parentElement;
     }
+
+    // B. Find and hide any page title / heading outside pagematic-root
+    var mainContainer = root.closest('main, #MainContent, .main-content, body') || document.body;
+    var headings = mainContainer.querySelectorAll('h1, header, .page-title, .main-page-title, .section-header, .page-header, .title-wrapper, [class*="page-title"], [class*="section-header"]');
+    headings.forEach(function(el) {
+      if (!root.contains(el)) {
+        el.style.setProperty('display', 'none', 'important');
+      }
+    });
   }
 
   if (document.readyState === 'loading') {

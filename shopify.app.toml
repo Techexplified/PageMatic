@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "ae2f8a3be4699e923b1492c939baca82"
-application_url = "https://example.com"
+application_url = "https://page-matic.vercel.app"
 embedded = true
 name = "PageMatic - AI Page Builder"
 
@@ -45,7 +45,7 @@ api_version = "2026-10"
   topics = [ "app/scopes_update" ]
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://page-matic.vercel.app/api/auth" ]
 
 [build]
 automatically_update_urls_on_dev = true

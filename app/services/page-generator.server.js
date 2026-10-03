@@ -46,7 +46,7 @@ export async function generateAndPersistPage({
   // Check Page Credits
   if ((settings.pageCredits ?? 0) < PAGE_COST_CREDITS) {
     throw new Error(
-      `You have insufficient Page Credits (needed: ${PAGE_COST_CREDITS}, available: ${settings.pageCredits ?? 0}). Credits refresh on your monthly billing cycle.`
+      `You have insufficient Page Credits (needed: ${PAGE_COST_CREDITS}, available: ${settings.pageCredits ?? 0}). Credits refresh weekly.`
     );
   }
 

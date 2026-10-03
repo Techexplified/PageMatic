@@ -474,27 +474,6 @@ export default function Dashboard() {
                   ? "Try searching with a different term."
                   : "Generate your first high-converting storefront landing page now."}
               </p>
-              {!searchQuery && (
-                <Link
-                  to="/app/page-builder"
-                  style={{
-                    marginTop: "16px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "10px 22px",
-                    background: "#0052FF",
-                    color: "#FFFFFF",
-                    borderRadius: "10px",
-                    fontWeight: 700,
-                    fontSize: "14px",
-                    textDecoration: "none",
-                    boxShadow: "0 4px 14px rgba(0, 82, 255, 0.25)",
-                  }}
-                >
-                  + Build New Page
-                </Link>
-              )}
             </div>
           )}
         </div>

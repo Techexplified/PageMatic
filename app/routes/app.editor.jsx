@@ -324,7 +324,7 @@ export const action = async ({ request }) => {
     if ((shopSettings?.iterationTokens ?? 0) < SECTION_COST_TOKENS) {
       return data({
         success: false,
-        error: `You have insufficient Silver Tokens for AI micro-edits (needed: ${SECTION_COST_TOKENS}, available: ${shopSettings?.iterationTokens ?? 0}). Tokens refresh on your monthly plan.`,
+        error: `You have insufficient Silver Tokens for AI micro-edits (needed: ${SECTION_COST_TOKENS}, available: ${shopSettings?.iterationTokens ?? 0}). Tokens refresh weekly.`,
       });
     }
 
@@ -477,7 +477,7 @@ Return the updated section data JSON object:`;
     if ((shopSettings?.iterationTokens ?? 0) < SECTION_COST_TOKENS) {
       return data({
         success: false,
-        error: `You have insufficient Silver Tokens for theme generation (needed: ${SECTION_COST_TOKENS}, available: ${shopSettings?.iterationTokens ?? 0}). Tokens refresh on your monthly plan.`,
+        error: `You have insufficient Silver Tokens for theme generation (needed: ${SECTION_COST_TOKENS}, available: ${shopSettings?.iterationTokens ?? 0}). Tokens refresh weekly.`,
       });
     }
 

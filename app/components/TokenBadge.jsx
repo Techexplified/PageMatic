@@ -26,7 +26,7 @@ export default function TokenBadge({ shopSettings }) {
         <div className="pm-token-item" title="Full-Page Generation Credits">
           <div className="pm-token-coin--gold">G</div>
           <span className="pm-token-count">{goldCredits}</span>
-          <span className="pm-token-label">monthly credits</span>
+          <span className="pm-token-label">weekly credits</span>
         </div>
 
         <div className="pm-token-divider" />

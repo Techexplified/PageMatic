@@ -6,8 +6,7 @@ embedded = true
 name = "PageMatic - AI Page Builder"
 
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,write_metaobjects,write_metaobject_definitions,read_products,write_online_store_pages,write_themes,read_themes,read_content,write_content,read_legal_policies"
+scopes = "write_products,write_metaobjects,write_metaobject_definitions,read_products,write_online_store_pages,read_themes,read_content,write_content,read_legal_policies"
 
 [product.metafields.app.demo_info]
 type = "single_line_text_field"

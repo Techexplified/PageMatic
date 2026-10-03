@@ -22,7 +22,7 @@ async function main(){
         process.exit(1);
     }
 
-    const goldCredits = 50;
+    const goldCredits = 100;
     const silverCredits = 200;
 
     const updated = await db.shopSettings.update({

@@ -17,7 +17,7 @@ export async function loader({ request }) {
                 lastCreditResetAt: { lte: sevenDaysAgo },
             },
             data: {
-                pageCredits: 50,
+                pageCredits: 100,
                 iterationTokens: 200,
                 lastCreditResetAt: new Date(),
             },

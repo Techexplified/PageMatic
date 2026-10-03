@@ -36,7 +36,7 @@ model Session {
 model ShopSettings {
   id              String       @id @default(cuid())
   shop            String       @unique // e.g. "mystore.myshopify.com"
-  pageCredits     Int          @default(50) // Weekly full-page credits
+  pageCredits     Int          @default(100) // Weekly full-page credits
   iterationTokens Int          @default(200) // Micro-edit tokens
   isOnboarded     Boolean      @default(false)
   lastCreditResetAt DateTime @default(now())

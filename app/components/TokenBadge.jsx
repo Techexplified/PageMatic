@@ -16,7 +16,7 @@ export default function TokenBadge({ shopSettings }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const goldCredits = shopSettings?.pageCredits ?? 50;
+  const goldCredits = shopSettings?.pageCredits ?? 100;
   const silverTokens = shopSettings?.iterationTokens ?? 200;
 
   return (

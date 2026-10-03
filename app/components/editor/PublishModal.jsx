@@ -28,6 +28,13 @@ export default function PublishModal({
   const [copied, setCopied] = useState(false);
   const [confirmingUnpublish, setConfirmingUnpublish] = useState(false);
   const [justUnpublished, setJustUnpublished] = useState(false);
+  const [customHandle, setCustomHandle] = useState(page?.handle || "my-page");
+
+  useEffect(() => {
+    if (page?.handle) {
+      setCustomHandle(page.handle);
+    }
+  }, [page?.handle]);
 
   useEffect(() => {
     if (isUnpublishing) {
@@ -45,9 +52,14 @@ export default function PublishModal({
 
   const isAlreadyPublished = page?.status === "PUBLISHED";
   const cleanShop = (shop || "").replace(/^https?:\/\//, "").replace(/\/+$/, "");
-  const handle = page?.handle || "my-page";
+  const activeHandle = (customHandle || page?.handle || "my-page")
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "my-page";
   const storefrontUrl =
-    publishResult?.storefrontUrl || `https://${cleanShop}/pages/${handle}`;
+    publishResult?.storefrontUrl || `https://${cleanShop}/pages/${activeHandle}`;
 
   const isBusy = isPublishing || isUnpublishing;
 
@@ -207,8 +219,8 @@ export default function PublishModal({
                 <div
                   style={{
                     display: "flex",
-                    alignItems: "flex-start",
-                    gap: "10px",
+                    flexDirection: "column",
+                    gap: "8px",
                     padding: "12px 14px",
                     background: "#FEF2F2",
                     border: "1px solid #FECACA",
@@ -217,12 +229,38 @@ export default function PublishModal({
                     fontSize: "13.5px",
                   }}
                 >
-                  <AlertCircle size={17} style={{ flexShrink: 0, marginTop: "2px" }} />
-                  <span>{publishResult.error}</span>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                    <AlertCircle size={17} style={{ flexShrink: 0, marginTop: "2px" }} />
+                    <span style={{ fontWeight: 600 }}>{publishResult.error}</span>
+                  </div>
+                  {publishResult.error.toLowerCase().includes("handle") && (
+                    <div style={{ paddingLeft: "27px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const base = customHandle.replace(/-\d+$/, "");
+                          const nextHandle = `${base}-${Math.floor(100 + Math.random() * 900)}`;
+                          setCustomHandle(nextHandle);
+                        }}
+                        style={{
+                          background: "#FFFFFF",
+                          border: "1px solid #F87171",
+                          color: "#B91C1C",
+                          borderRadius: "6px",
+                          padding: "4px 10px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        ⚡ Auto-assign unique handle
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Destination URL & Status Box */}
+              {/* Destination URL & Status Box with Editable Handle */}
               <div
                 style={{
                   background: "#F8FAFC",
@@ -231,12 +269,12 @@ export default function PublishModal({
                   padding: "16px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: "10px",
+                  gap: "12px",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "#64748B" }}>
-                    Storefront Destination
+                  <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "#64748B", letterSpacing: "0.5px" }}>
+                    Storefront URL & Slug
                   </span>
                   <span
                     style={{
@@ -255,53 +293,93 @@ export default function PublishModal({
                   </span>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
-                    <Globe size={16} color="#0052FF" style={{ flexShrink: 0 }} />
-                    <span
-                      style={{
-                        fontSize: "13.5px",
-                        fontFamily: "monospace",
-                        color: "#0F172A",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {storefrontUrl}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleCopyLink}
+                {/* Editable URL Input */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <div
                     style={{
-                      display: "inline-flex",
+                      display: "flex",
                       alignItems: "center",
-                      gap: "4px",
                       background: "#FFFFFF",
-                      border: "1px solid #CBD5E1",
-                      borderRadius: "6px",
-                      padding: "4px 8px",
-                      fontSize: "11.5px",
-                      fontWeight: 600,
-                      color: "#334155",
-                      cursor: "pointer",
-                      flexShrink: 0,
+                      border: "1.5px solid #CBD5E1",
+                      borderRadius: "8px",
+                      padding: "6px 10px",
+                      gap: "6px",
+                      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
                     }}
                   >
-                    {copied ? (
-                      <>
-                        <Check size={12} color="#16A34A" />
-                        <span style={{ color: "#16A34A" }}>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={12} />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
+                    <Globe size={15} color="#0052FF" style={{ flexShrink: 0 }} />
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontFamily: "monospace",
+                        color: "#64748B",
+                        whiteSpace: "nowrap",
+                        userSelect: "none",
+                      }}
+                    >
+                      https://{cleanShop}/pages/
+                    </span>
+                    <input
+                      type="text"
+                      value={customHandle}
+                      onChange={(e) => {
+                        const formatted = e.target.value
+                          .toLowerCase()
+                          .replace(/\s+/g, "-")
+                          .replace(/[^a-z0-9-_]/g, "");
+                        setCustomHandle(formatted);
+                      }}
+                      placeholder="page-handle"
+                      title="Edit URL handle slug"
+                      style={{
+                        flex: 1,
+                        border: "none",
+                        outline: "none",
+                        background: "transparent",
+                        fontFamily: "monospace",
+                        fontWeight: 700,
+                        fontSize: "13.5px",
+                        color: "#0F172A",
+                        padding: 0,
+                        minWidth: "60px",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      title="Copy complete storefront URL"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        background: "#F1F5F9",
+                        border: "1px solid #CBD5E1",
+                        borderRadius: "6px",
+                        padding: "4px 8px",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        color: "#334155",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                        marginLeft: "auto",
+                      }}
+                    >
+                      {copied ? (
+                        <>
+                          <Check size={12} color="#16A34A" />
+                          <span style={{ color: "#16A34A" }}>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <span style={{ fontSize: "11.5px", color: "#64748B", padding: "0 2px" }}>
+                    You can edit and customize this URL handle slug before publishing.
+                  </span>
                 </div>
               </div>
 
@@ -309,7 +387,7 @@ export default function PublishModal({
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#334155" }}>
                   <Check size={15} color="#16A34A" />
-                  <span>Mapped to <strong>/pages/{handle}</strong></span>
+                  <span>Mapped to <strong>/pages/{activeHandle}</strong></span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#334155" }}>
                   <Check size={15} color="#16A34A" />
@@ -352,7 +430,7 @@ export default function PublishModal({
 
                     <button
                       type="button"
-                      onClick={onConfirmPublish}
+                      onClick={() => onConfirmPublish && onConfirmPublish(activeHandle)}
                       disabled={isBusy}
                       style={{
                         flex: 1.3,
@@ -449,7 +527,7 @@ export default function PublishModal({
 
                   <button
                     type="button"
-                    onClick={onConfirmPublish}
+                    onClick={() => onConfirmPublish && onConfirmPublish(activeHandle)}
                     disabled={isBusy}
                     style={{
                       flex: 2,

@@ -192,6 +192,7 @@ export const action = async ({ request }) => {
   if (intent === "PUBLISH_PAGE") {
     const pageId = formData.get("pageId");
     const title = formData.get("title") || "Untitled Page";
+    const requestedHandle = formData.get("handle");
     const contentJsonStr = formData.get("contentJson");
 
     let contentJson = {};
@@ -206,17 +207,42 @@ export const action = async ({ request }) => {
       });
     }
 
+    const sanitizedHandle = requestedHandle
+      ? String(requestedHandle)
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_-]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+      : null;
+
     if (targetPage) {
+      let finalHandle = sanitizedHandle || targetPage.handle;
+      // If handle changed, ensure no internal DB conflict with another page
+      if (sanitizedHandle && sanitizedHandle !== targetPage.handle) {
+        const dbCollision = await db.page.findFirst({
+          where: {
+            shopId: shopSettings.id,
+            handle: sanitizedHandle,
+            id: { not: targetPage.id },
+          },
+        });
+        if (dbCollision) {
+          finalHandle = `${sanitizedHandle}-${Date.now().toString().slice(-4)}`;
+        }
+      }
+
       targetPage = await db.page.update({
         where: { id: targetPage.id },
         data: {
           title,
+          handle: finalHandle,
           contentJson,
           updatedAt: new Date(),
         },
       });
     } else {
-      const baseHandle = title
+      const baseHandle = sanitizedHandle || title
         .toLowerCase()
         .trim()
         .replace(/[^\w\s-]/g, "")
@@ -1023,12 +1049,17 @@ export default function StudioEditor() {
     setIsPublishModalOpen(true);
   };
 
-  const handleConfirmPublish = () => {
+  const handleConfirmPublish = (customHandle) => {
+    const handleToUse =
+      typeof customHandle === "string" && customHandle.trim()
+        ? customHandle.trim()
+        : page?.handle || "";
+
     const formData = new FormData();
     formData.append("intent", "PUBLISH_PAGE");
     formData.append("pageId", page?.id || "");
     formData.append("title", pageTitle || "Untitled Page");
-    formData.append("handle", page?.handle || "");
+    formData.append("handle", handleToUse);
     formData.append("contentJson", JSON.stringify({ ...contentJson, title: pageTitle, sections, themeTokens }));
     publishFetcher.submit(formData, { method: "POST" });
   };

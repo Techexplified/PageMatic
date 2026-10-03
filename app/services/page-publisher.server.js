@@ -57,6 +57,24 @@ export async function publishPageToShopify({ admin, shop, page }) {
         // If page was deleted from Shopify admin, fallback to creating a new one
         if (userErrors.some((e) => e.message.toLowerCase().includes("not found"))) {
           shopifyPageId = null;
+        } else if (userErrors.some((e) => e.message.toLowerCase().includes("handle has already been taken"))) {
+          console.warn("[Publisher] Handle collision on pageUpdate. Retrying without handle mutation to preserve live URL...");
+          const retryUpdate = await admin.graphql(updateMutation, {
+            variables: {
+              id: shopifyPageId,
+              page: {
+                title: page.title,
+                body: compiledHtml,
+                isPublished: true,
+              },
+            },
+          });
+          const retryJson = await retryUpdate.json();
+          const retryErrors = retryJson?.data?.pageUpdate?.userErrors || [];
+          if (retryErrors.length > 0) {
+            throw new Error(retryErrors.map((e) => e.message).join(", "));
+          }
+          finalHandle = retryJson?.data?.pageUpdate?.page?.handle || finalHandle;
         } else {
           throw new Error(userErrors.map((e) => e.message).join(", "));
         }
@@ -83,19 +101,51 @@ export async function publishPageToShopify({ admin, shop, page }) {
         }
       `;
 
-      const res = await admin.graphql(createMutation, {
+      let res = await admin.graphql(createMutation, {
         variables: {
           page: {
             title: page.title,
-            handle: page.handle,
+            handle: finalHandle,
             body: compiledHtml,
             isPublished: true,
           },
         },
       });
 
-      const resJson = await res.json();
-      const userErrors = resJson?.data?.pageCreate?.userErrors || [];
+      let resJson = await res.json();
+      let userErrors = resJson?.data?.pageCreate?.userErrors || [];
+
+      // Auto-resolve handle collision if the requested handle already exists in the merchant's Shopify store
+      if (userErrors.some((e) => e.message?.toLowerCase().includes("handle has already been taken"))) {
+        console.warn(`[Publisher] Handle '${finalHandle}' is already taken on Shopify. Auto-resolving unique handle fallback...`);
+        let retryCounter = 1;
+        let retrySuccess = false;
+
+        while (retryCounter <= 5 && !retrySuccess) {
+          const fallbackHandle = `${finalHandle.replace(/-\d+$/, "")}-${retryCounter}`;
+          const retryRes = await admin.graphql(createMutation, {
+            variables: {
+              page: {
+                title: page.title,
+                handle: fallbackHandle,
+                body: compiledHtml,
+                isPublished: true,
+              },
+            },
+          });
+          const retryData = await retryRes.json();
+          const retryErrors = retryData?.data?.pageCreate?.userErrors || [];
+          if (retryErrors.length === 0 && retryData?.data?.pageCreate?.page?.id) {
+            resJson = retryData;
+            userErrors = [];
+            finalHandle = retryData.data.pageCreate.page.handle || fallbackHandle;
+            retrySuccess = true;
+            break;
+          }
+          retryCounter++;
+        }
+      }
+
       if (userErrors.length > 0) {
         throw new Error(userErrors.map((e) => e.message).join(", "));
       }

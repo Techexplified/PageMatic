@@ -260,7 +260,7 @@ export default function PublishModal({
                 </div>
               )}
 
-              {/* Destination URL & Status Box with Editable Handle */}
+              {/* Storefront Destination Box (Non-editable Preview + Copy) */}
               <div
                 style={{
                   background: "#F8FAFC",
@@ -269,12 +269,12 @@ export default function PublishModal({
                   padding: "16px",
                   display: "flex",
                   flexDirection: "column",
-                  gap: "12px",
+                  gap: "10px",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "#64748B", letterSpacing: "0.5px" }}>
-                    Storefront URL & Slug
+                  <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "#64748B" }}>
+                    Storefront Destination
                   </span>
                   <span
                     style={{
@@ -293,94 +293,104 @@ export default function PublishModal({
                   </span>
                 </div>
 
-                {/* Editable URL Input */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      background: "#FFFFFF",
-                      border: "1.5px solid #CBD5E1",
-                      borderRadius: "8px",
-                      padding: "6px 10px",
-                      gap: "6px",
-                      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
-                    }}
-                  >
-                    <Globe size={15} color="#0052FF" style={{ flexShrink: 0 }} />
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden", flex: 1 }}>
+                    <Globe size={16} color="#0052FF" style={{ flexShrink: 0 }} />
                     <span
                       style={{
-                        fontSize: "13px",
-                        fontFamily: "monospace",
-                        color: "#64748B",
-                        whiteSpace: "nowrap",
-                        userSelect: "none",
-                      }}
-                    >
-                      https://{cleanShop}/pages/
-                    </span>
-                    <input
-                      type="text"
-                      value={customHandle}
-                      onChange={(e) => {
-                        const formatted = e.target.value
-                          .toLowerCase()
-                          .replace(/\s+/g, "-")
-                          .replace(/[^a-z0-9-_]/g, "");
-                        setCustomHandle(formatted);
-                      }}
-                      placeholder="page-handle"
-                      title="Edit URL handle slug"
-                      style={{
-                        flex: 1,
-                        border: "none",
-                        outline: "none",
-                        background: "transparent",
-                        fontFamily: "monospace",
-                        fontWeight: 700,
                         fontSize: "13.5px",
+                        fontFamily: "monospace",
                         color: "#0F172A",
-                        padding: 0,
-                        minWidth: "60px",
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCopyLink}
-                      title="Copy complete storefront URL"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        background: "#F1F5F9",
-                        border: "1px solid #CBD5E1",
-                        borderRadius: "6px",
-                        padding: "4px 8px",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "#334155",
-                        cursor: "pointer",
-                        flexShrink: 0,
-                        marginLeft: "auto",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                       }}
                     >
-                      {copied ? (
-                        <>
-                          <Check size={12} color="#16A34A" />
-                          <span style={{ color: "#16A34A" }}>Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={12} />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </button>
+                      {storefrontUrl}
+                    </span>
                   </div>
-                  <span style={{ fontSize: "11.5px", color: "#64748B", padding: "0 2px" }}>
-                    You can edit and customize this URL handle slug before publishing.
-                  </span>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      background: "#FFFFFF",
+                      border: "1px solid #CBD5E1",
+                      borderRadius: "6px",
+                      padding: "4px 8px",
+                      fontSize: "11.5px",
+                      fontWeight: 600,
+                      color: "#334155",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={12} color="#16A34A" />
+                        <span style={{ color: "#16A34A" }}>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
                 </div>
+              </div>
+
+              {/* Separate URL Handle (Slug) Input */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "#475569", letterSpacing: "0.5px" }}>
+                  URL Handle (Slug)
+                </label>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    background: "#FFFFFF",
+                    border: "1.5px solid #CBD5E1",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                    gap: "6px",
+                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
+                  }}
+                >
+                  <span style={{ fontSize: "13.5px", fontFamily: "monospace", color: "#94A3B8", userSelect: "none" }}>
+                    /pages/
+                  </span>
+                  <input
+                    type="text"
+                    value={customHandle}
+                    onChange={(e) => {
+                      const formatted = e.target.value
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")
+                        .replace(/[^a-z0-9-_]/g, "");
+                      setCustomHandle(formatted);
+                    }}
+                    placeholder="my-page-handle"
+                    title="Customize the page URL slug"
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      fontFamily: "monospace",
+                      fontWeight: 600,
+                      fontSize: "13.5px",
+                      color: "#0F172A",
+                      padding: 0,
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: "11.5px", color: "#64748B" }}>
+                  Edit this slug to customize your page URL path on Shopify.
+                </span>
               </div>
 
               {/* Checklist details */}

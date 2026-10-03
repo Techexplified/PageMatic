@@ -4,26 +4,59 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. THEME PAGE CONTAINER BREAKOUT & RESET
-   Ensures PageMatic pages render edge-to-edge full width without being 
-   constrained by Shopify themes' narrow blog/article container wrappers.
+   1. UNIVERSAL 100vw VIEWPORT BREAKOUT & RESET (ALL SHOPIFY THEMES)
+   Breaks out of ANY theme container (Dawn, Horizon, Prestige, Turbo, etc.)
+   to stretch seamlessly edge-to-edge across the entire viewport.
    -------------------------------------------------------------------------- */
 
-/* Target theme containers across Dawn, Refresh, Sense, Prestige, Impulse, etc. */
+html:has(#pagematic-root),
+html:has(.pagematic-page-container),
+body:has(#pagematic-root),
+body:has(.pagematic-page-container) {
+  overflow-x: hidden !important;
+}
+
+/* 100vw Full-Bleed Breakout Math */
+#pagematic-root,
+.pagematic-page-container {
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  position: relative !important;
+  left: 50% !important;
+  right: 50% !important;
+  margin-left: -50vw !important;
+  margin-right: -50vw !important;
+  display: block !important;
+  overflow-x: clip;
+}
+
+.pagematic-page-container *,
+.pagematic-page-container *::before,
+.pagematic-page-container *::after {
+  box-sizing: inherit;
+}
+
+/* Universal Ancestor Container Resets */
+body:has(#pagematic-root) main,
+body:has(#pagematic-root) #MainContent,
+body:has(#pagematic-root) .main-content,
+body:has(#pagematic-root) .content-for-layout,
+div:has(> #pagematic-root),
+div:has(> * > #pagematic-root),
+div:has(> * > * > #pagematic-root),
+.container:has(#pagematic-root),
+.container--narrow:has(#pagematic-root),
 .page-width:has(#pagematic-root),
-.page-width:has(.pagematic-page-container),
 .page-width--narrow:has(#pagematic-root),
-.page-width--narrow:has(.pagematic-page-container),
+.page-content:has(#pagematic-root),
 .rte:has(#pagematic-root),
-.rte:has(.pagematic-page-container),
-.main-page-section:has(#pagematic-root),
-.main-page-section:has(.pagematic-page-container),
-.section-main-page:has(#pagematic-root),
-.section-main-page:has(.pagematic-page-container),
+.wrapper:has(#pagematic-root),
 .shopify-section:has(#pagematic-root),
-.shopify-section:has(.pagematic-page-container),
-.page-container:has(#pagematic-root),
-.page-container:has(.pagematic-page-container) {
+.main-page-section:has(#pagematic-root),
+.section-main-page:has(#pagematic-root),
+.page-container:has(#pagematic-root) {
   max-width: 100% !important;
   width: 100% !important;
   padding-left: 0 !important;
@@ -32,8 +65,6 @@
   padding-bottom: 0 !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
 }
 
 /* Reset Shopify RTE standard text-element spacing inside PageMatic */
@@ -52,50 +83,24 @@
 }
 
 /* --------------------------------------------------------------------------
-   2. HIDE THEME'S DEFAULT REDUNDANT PAGE TITLE
-   Hides the hardcoded theme <h1> heading so PageMatic's custom hero & 
-   announcement headers take center stage cleanly.
+   2. UNIVERSAL STRUCTURAL REDUNDANT HEADER SUPPRESSION
+   Hides theme <h1>, <header>, or section title wrappers preceding PageMatic.
    -------------------------------------------------------------------------- */
-.main-page-title:has(~ .rte #pagematic-root),
-.main-page-title:has(~ .rte .pagematic-page-container),
-.main-page-title:has(~ #pagematic-root),
-.main-page-title:has(~ .pagematic-page-container),
-.page-title:has(~ .rte #pagematic-root),
-.page-title:has(~ .rte .pagematic-page-container),
-.page-title:has(~ #pagematic-root),
-.page-title:has(~ .pagematic-page-container),
-.main-page__title:has(~ * #pagematic-root),
-.main-page__title:has(~ * .pagematic-page-container),
-.section-header:has(~ .rte #pagematic-root),
-.section-header:has(~ .rte .pagematic-page-container),
-:has(> .rte #pagematic-root) > .main-page-title,
-:has(> .rte .pagematic-page-container) > .main-page-title,
-:has(> .rte #pagematic-root) > .page-title,
-:has(> .rte .pagematic-page-container) > .page-title,
-:has(> .rte #pagematic-root) > h1.title,
-:has(> .rte .pagematic-page-container) > h1.title,
-:has(> .rte #pagematic-root) > .section-header,
-:has(> .rte .pagematic-page-container) > .section-header {
+:has(> #pagematic-root) > header,
+:has(> #pagematic-root) > h1,
+:has(> * > #pagematic-root) > header,
+:has(> * > #pagematic-root) > h1,
+.shopify-section:has(#pagematic-root) > header,
+.shopify-section:has(#pagematic-root) > h1,
+.shopify-section:has(#pagematic-root) header:not(#pagematic-root header),
+.shopify-section:has(#pagematic-root) h1:not(#pagematic-root h1),
+:has(#pagematic-root) .section-header,
+:has(#pagematic-root) .section-header__title,
+:has(#pagematic-root) .main-page-title,
+:has(#pagematic-root) .page-title,
+:has(#pagematic-root) .page-header,
+:has(#pagematic-root) .title-wrapper {
   display: none !important;
-}
-
-/* --------------------------------------------------------------------------
-   3. ROOT PAGEMATIC CONTAINER
-   -------------------------------------------------------------------------- */
-.pagematic-page-container {
-  box-sizing: border-box;
-  -webkit-font-smoothing: antialiased;
-  width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
-  position: relative;
-  overflow-x: clip;
-}
-
-.pagematic-page-container *,
-.pagematic-page-container *::before,
-.pagematic-page-container *::after {
-  box-sizing: inherit;
 }
 
 /* --------------------------------------------------------------------------

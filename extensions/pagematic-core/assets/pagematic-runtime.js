@@ -515,36 +515,29 @@
     );
   }
 
-  // Automatic Theme Breakout & Duplicate Header Cleanup
+  // Bright Idea 3: Universal Dynamic Theme Breakout & Duplicate Header Cleanup
   function initStorefrontBreakout() {
     const root = document.getElementById("pagematic-root") || document.querySelector(".pagematic-page-container");
     if (!root) return;
 
-    // 1. Expand parent theme wrappers
+    // 1. Walk up EVERY ancestor element to document.body and strip width/padding/margin constraints
     let parent = root.parentElement;
-    while (parent && parent !== document.body) {
-      if (
-        parent.classList.contains("page-width") ||
-        parent.classList.contains("page-width--narrow") ||
-        parent.classList.contains("rte") ||
-        parent.classList.contains("main-page-section") ||
-        parent.classList.contains("section-main-page")
-      ) {
-        parent.style.setProperty("max-width", "100%", "important");
-        parent.style.setProperty("width", "100%", "important");
-        parent.style.setProperty("padding-left", "0", "important");
-        parent.style.setProperty("padding-right", "0", "important");
-        parent.style.setProperty("margin-left", "0", "important");
-        parent.style.setProperty("margin-right", "0", "important");
-      }
+    while (parent && parent !== document.body && parent !== document.documentElement) {
+      parent.style.setProperty("max-width", "100%", "important");
+      parent.style.setProperty("width", "100%", "important");
+      parent.style.setProperty("padding-left", "0px", "important");
+      parent.style.setProperty("padding-right", "0px", "important");
+      parent.style.setProperty("margin-left", "0px", "important");
+      parent.style.setProperty("margin-right", "0px", "important");
       parent = parent.parentElement;
     }
 
-    // 2. Hide redundant theme <h1> title above PageMatic page
-    const themeTitles = document.querySelectorAll(".main-page-title, .page-title, .main-page__title, h1.title, .section-header");
-    themeTitles.forEach((titleEl) => {
-      if (titleEl.closest(".main-page-section, .section-main-page, .shopify-section, main")?.querySelector("#pagematic-root, .pagematic-page-container")) {
-        titleEl.style.setProperty("display", "none", "important");
+    // 2. Hide redundant theme <h1> or <header> preceding or surrounding PageMatic in the same section
+    const enclosingSection = root.closest(".shopify-section, main, #MainContent, .main-content, body") || document.body;
+    const candidates = enclosingSection.querySelectorAll('h1, header, .main-page-title, .page-title, .main-page__title, .section-header, .page-header, .title-wrapper, [class*="title"], [class*="header"]');
+    candidates.forEach((el) => {
+      if (!root.contains(el)) {
+        el.style.setProperty("display", "none", "important");
       }
     });
   }

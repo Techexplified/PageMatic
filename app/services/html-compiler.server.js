@@ -85,55 +85,68 @@ export function compilePageToHtml(contentJson = {}) {
   return `
 <!-- PageMatic Storefront Page -->
 <style>
-  /* 1. Break out of Shopify Theme container constraints (Dawn, Horizon, Sense, Prestige, Debut, etc.) */
+  /* 1. Universal 100vw Breakout & Ancestor Reset across all Shopify themes */
   html:has(#pagematic-root),
   body:has(#pagematic-root) {
     overflow-x: hidden !important;
+  }
+
+  #pagematic-root,
+  .pagematic-page-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    position: relative !important;
+    left: 50% !important;
+    right: 50% !important;
+    margin-left: -50vw !important;
+    margin-right: -50vw !important;
+    box-sizing: border-box !important;
+    display: block !important;
   }
 
   body:has(#pagematic-root) main,
   body:has(#pagematic-root) #MainContent,
   body:has(#pagematic-root) .main-content,
   body:has(#pagematic-root) .content-for-layout,
-  body:has(#pagematic-root) .page-width,
-  body:has(#pagematic-root) .page-width--narrow,
-  body:has(#pagematic-root) .container,
-  body:has(#pagematic-root) .container--narrow,
-  body:has(#pagematic-root) .wrapper,
-  body:has(#pagematic-root) .rte,
-  body:has(#pagematic-root) .page-content,
-  body:has(#pagematic-root) [class*="section-template"],
-  body:has(#pagematic-root) [class*="page-width"],
-  body:has(#pagematic-root) [class*="container"],
-  body:has(#pagematic-root) [class*="page-content"] {
+  div:has(> #pagematic-root),
+  div:has(> * > #pagematic-root),
+  div:has(> * > * > #pagematic-root),
+  .container:has(#pagematic-root),
+  .container--narrow:has(#pagematic-root),
+  .page-width:has(#pagematic-root),
+  .page-width--narrow:has(#pagematic-root),
+  .page-content:has(#pagematic-root),
+  .wrapper:has(#pagematic-root),
+  .rte:has(#pagematic-root),
+  .shopify-section:has(#pagematic-root),
+  .main-page-section:has(#pagematic-root),
+  .section-main-page:has(#pagematic-root) {
     max-width: 100% !important;
     width: 100% !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
   }
 
-  /* 2. Hide redundant auto-generated theme page titles outside PageMatic */
-  body:has(#pagematic-root) .main-page-title,
-  body:has(#pagematic-root) .page-title,
-  body:has(#pagematic-root) .page-header,
-  body:has(#pagematic-root) .section-header,
-  body:has(#pagematic-root) .title-wrapper,
-  body:has(#pagematic-root) [class*="page-title"],
-  body:has(#pagematic-root) [class*="section-header"],
-  body:has(#pagematic-root) [class*="title-wrapper"],
-  body:has(#pagematic-root) header:not(#pagematic-root header) {
+  /* 2. Universal Structural Redundant Header Suppression */
+  :has(> #pagematic-root) > header,
+  :has(> #pagematic-root) > h1,
+  :has(> * > #pagematic-root) > header,
+  :has(> * > #pagematic-root) > h1,
+  .shopify-section:has(#pagematic-root) > header,
+  .shopify-section:has(#pagematic-root) > h1,
+  .shopify-section:has(#pagematic-root) header:not(#pagematic-root header),
+  .shopify-section:has(#pagematic-root) h1:not(#pagematic-root h1),
+  :has(#pagematic-root) .section-header,
+  :has(#pagematic-root) .section-header__title,
+  :has(#pagematic-root) .main-page-title,
+  :has(#pagematic-root) .page-title,
+  :has(#pagematic-root) .page-header,
+  :has(#pagematic-root) .title-wrapper {
     display: none !important;
-  }
-
-  #pagematic-root {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    box-sizing: border-box !important;
-    display: block !important;
   }
 
   .pm-action-btn:hover {

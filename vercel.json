@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "app/routes/**/*": {
-      "maxDuration": 180
-    }
-  },
   "crons": [
     {
       "path": "/api/cron",

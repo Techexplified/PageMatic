@@ -160,7 +160,7 @@ export default function StepGenerating({
 
           {/* Subtitle */}
           <p className="pm-generating-subtitle">
-            This usually takes under a minute.
+            This may take a while to generate.
           </p>
 
           {/* Credit Info Box */}

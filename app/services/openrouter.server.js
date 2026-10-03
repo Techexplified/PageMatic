@@ -21,15 +21,23 @@ export async function generateWithOpenRouter({
 
   const modelQueue = [model, ...(fallbacks || [])];
   let lastError = null;
+  const startTime = Date.now();
+  const GLOBAL_DEADLINE_MS = 170000; // 3-minute overall deadline for graceful shutdown
 
   for (let i = 0; i < modelQueue.length; i++) {
+    // Check if global deadline exceeded
+    if (Date.now() - startTime > GLOBAL_DEADLINE_MS) {
+      console.warn(`[OpenRouter] Global deadline reached (${GLOBAL_DEADLINE_MS}ms). Gracefully stopping further attempts.`);
+      break;
+    }
+
     const currentModel = modelQueue[i];
     console.log(`[OpenRouter] Attempting generation with model (${i + 1}/${modelQueue.length}): ${currentModel}`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 14000); // 14-second hard timeout per model attempt to prevent Cloudflare 524
+    }, 13000); // 13-second hard timeout per attempt
 
     try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -97,9 +105,9 @@ export async function generateWithOpenRouter({
     }
   }
 
-  console.error(`[OpenRouter] All model attempts failed. Last error: ${lastError?.message || "Unknown error"}`);
+  console.error(`[OpenRouter] Generation attempts failed or timed out. Last error: ${lastError?.message || "Unknown error"}`);
   throw new Error(
-    "Our AI design engine is momentarily experiencing high traffic. Please try again in a few moments."
+    "Our AI engine experienced high latency or high demand. Please try generating again."
   );
 }
 

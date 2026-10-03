@@ -257,7 +257,7 @@ export default function Dashboard() {
             {/* Gold Tokens (Page Credits) */}
             <div className="pm-token-item" title="Full-Page Generation Credits">
               <div className="pm-token-coin--gold">G</div>
-              <span className="pm-token-count">{shopSettings?.pageCredits ?? 20}</span>
+              <span className="pm-token-count">{shopSettings?.pageCredits ?? 50}</span>
               <span className="pm-token-label">credits</span>
             </div>
 
@@ -266,7 +266,7 @@ export default function Dashboard() {
             {/* Silver Tokens (Micro-Edits) */}
             <div className="pm-token-item" title="Section Re-rolls & Micro-Edits">
               <div className="pm-token-coin--silver">S</div>
-              <span className="pm-token-count">{shopSettings?.iterationTokens ?? 100}</span>
+              <span className="pm-token-count">{shopSettings?.iterationTokens ?? 200}</span>
               <span className="pm-token-label">tokens</span>
             </div>
 

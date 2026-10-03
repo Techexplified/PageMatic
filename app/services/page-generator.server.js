@@ -36,8 +36,8 @@ export async function generateAndPersistPage({
     settings = await db.shopSettings.create({
       data: {
         shop,
-        pageCredits: 20,
-        iterationTokens: 100,
+        pageCredits: 50,
+        iterationTokens: 200,
         isOnboarded: true,
       },
     });

@@ -22,8 +22,8 @@ async function main(){
         process.exit(1);
     }
 
-    const goldCredits = 20;
-    const silverCredits = 100;
+    const goldCredits = 50;
+    const silverCredits = 200;
 
     const updated = await db.shopSettings.update({
         where: {shop:shop},

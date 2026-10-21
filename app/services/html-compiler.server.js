@@ -626,7 +626,7 @@ function compileSection(section, theme) {
     // 4. HEADER
     case "HEADER": {
       const brandName = escapeHtml(data.brandName || "Store");
-      const navLinks = Array.isArray(data.navLinks) ? data.navLinks : ["Collection", "Features", "Reviews", "FAQ"];
+      const navLinks = Array.isArray(data.navLinks) ? data.navLinks : ["Collection", "Features", "About", "FAQ"];
       const ctaText = escapeHtml(data.ctaText || "Shop Now");
       return `
         <header id="${sectionId}" class="pm-section pm-header" style="padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; background: var(--pm-bg); font-family: var(--pm-font-heading);">
@@ -735,21 +735,7 @@ function compileSection(section, theme) {
       `;
     }
 
-    // 6. SOCIAL PROOF STRIP
-    case "SOCIAL_PROOF_STRIP": {
-      const heading = escapeHtml(data.heading || "Featured & Endorsed By Leading Industry Outlets");
-      const logos = Array.isArray(data.logos) ? data.logos : ["VOGUE", "FORBES", "WIRED", "GQ", "OUTSIDE"];
-      return `
-        <div id="${sectionId}" class="pm-section pm-social-proof" style="padding: 32px; background: #fafafa; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; text-align: center;">
-          <p style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #64748b; text-transform: uppercase; margin-bottom: 20px;">${heading}</p>
-          <div style="display: flex; align-items: center; justify-content: center; gap: 40px; flex-wrap: wrap;">
-            ${logos.map((logo) => `<span style="font-size: 18px; font-weight: 900; color: #94a3b8; letter-spacing: 0.12em; font-family: Inter, sans-serif;">${escapeHtml(typeof logo === "string" ? logo : logo.name || logo.title || "")}</span>`).join("")}
-          </div>
-        </div>
-      `;
-    }
-
-    // 7. TRUST BADGES
+    // 6. TRUST BADGES
     case "TRUST_BADGES": {
       const items = Array.isArray(data.items) ? data.items : [
         { title: "30-Day Risk-Free Trial", description: "100% money back guarantee" },
@@ -991,35 +977,7 @@ function compileSection(section, theme) {
       `;
     }
 
-    // 15. TESTIMONIALS / REVIEWS
-    case "TESTIMONIALS":
-    case "REVIEWS": {
-      const heading = escapeHtml(data.heading || data.title || "Real Feedback From Verified Owners");
-      const subtitle = escapeHtml(data.subtitle || data.subheadline || "Discover why customers around the world rate us 4.9/5 stars.");
-      const items = Array.isArray(data.items || data.reviews) ? (data.items || data.reviews) : [];
-      return `
-        <section id="${sectionId}" class="pm-section pm-testimonials" style="padding: 60px 32px; background: var(--pm-surface); border-top: 1px solid #e2e8f0;">
-          <div style="text-align: center; max-width: 600px; margin: 0 auto 40px;">
-            <h2 style="font-size: 28px; font-weight: 800; color: var(--pm-text-heading); margin: 0 0 8px;">${heading}</h2>
-            <p style="font-size: 14.5px; color: var(--pm-text-body); margin: 0;">${subtitle}</p>
-          </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; max-width: 1000px; margin: 0 auto;">
-            ${items.map((rev) => `
-              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--pm-radius); padding: 24px; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
-                <div style="color: #f59e0b; font-size: 15px; margin-bottom: 12px;">★★★★★</div>
-                <p style="font-size: 13.5px; line-height: 1.6; color: #334155; font-style: italic; flex: 1; margin: 0 0 16px;">"${escapeHtml(rev.comment || rev.quote || rev.text || rev.review || "")}"</p>
-                <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 12px;">
-                  <span style="font-size: 13px; font-weight: 700; color: #0f172a;">${escapeHtml(rev.name || rev.author || "Verified Customer")}</span>
-                  <span style="font-size: 11px; color: #16a34a; font-weight: 600; display: flex; align-items: center; gap: 3px;">✓ ${escapeHtml(rev.badge || "Verified")}</span>
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    // 16. FAQ & FAQ ACCORDION GROUPS
+    // 15. FAQ & FAQ ACCORDION GROUPS
     case "FAQ":
     case "FAQ_GROUP_SHIPPING":
     case "FAQ_GROUP_RETURNS":

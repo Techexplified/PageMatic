@@ -373,7 +373,7 @@ export default function EditorInspectorPanel({
           />
         )}
 
-        {/* 4. REPEATABLE ITEMS (FAQ, Benefits, Testimonials, Trust Badges) */}
+        {/* 4. REPEATABLE ITEMS (FAQ, Benefits, Trust Badges) */}
         {isFieldAllowed("items") && Array.isArray(data.items) && (
           <div className="pm-form-field">
             <label className="pm-form-field-label">Items ({data.items.length})</label>
@@ -444,34 +444,6 @@ export default function EditorInspectorPanel({
                     onChange={(e) => {
                       const newItems = [...data.items];
                       newItems[idx] = { ...newItems[idx], description: e.target.value };
-                      handleFieldChange("items", newItems);
-                    }}
-                  />
-                )}
-
-                {/* Review item */}
-                {"name" in item && (
-                  <input
-                    type="text"
-                    className="pm-form-input"
-                    placeholder="Reviewer Name"
-                    style={{ marginBottom: "6px" }}
-                    value={item.name || ""}
-                    onChange={(e) => {
-                      const newItems = [...data.items];
-                      newItems[idx] = { ...newItems[idx], name: e.target.value };
-                      handleFieldChange("items", newItems);
-                    }}
-                  />
-                )}
-                {"comment" in item && (
-                  <textarea
-                    className="pm-form-textarea"
-                    placeholder="Review Comment"
-                    value={item.comment || ""}
-                    onChange={(e) => {
-                      const newItems = [...data.items];
-                      newItems[idx] = { ...newItems[idx], comment: e.target.value };
                       handleFieldChange("items", newItems);
                     }}
                   />

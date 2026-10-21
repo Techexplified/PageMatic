@@ -364,7 +364,7 @@ Your task is to rewrite and optimize the copy for a "${sectionType}" landing pag
 
 ### STRICT RULES:
 1. **OBEY MERCHANT INSTRUCTIONS:** Prioritize the user's rewrite instructions (tone, promotional angles, urgency, benefits).
-2. **PRESERVE STRUCTURE & BINDINGS:** You MUST retain all non-text fields (such as "buttonAction", "target", "actionType", "imageUrl", "galleryImages", "price", and variant IDs). Only update or improve the copy fields (headlines, subheadlines, subtitles, badges, descriptions, questions, answers, reviews) unless explicitly instructed to modify other elements.
+2. **PRESERVE STRUCTURE & BINDINGS:** You MUST retain all non-text fields (such as "buttonAction", "target", "actionType", "imageUrl", "galleryImages", "price", and variant IDs). Only update or improve the copy fields (headlines, subheadlines, subtitles, badges, descriptions, questions, answers) unless explicitly instructed to modify other elements.
 3. **NO FORMS / INPUT FIELDS:** NEVER insert email capture inputs or text forms.
 4. **OUTPUT FORMAT:** Return ONLY the valid raw JSON object matching the section data schema. Do not output markdown code fences or conversational text.`;
 

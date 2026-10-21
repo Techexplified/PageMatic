@@ -176,13 +176,10 @@ export function ProductPageIllustration() {
         <text x="88" y="36" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif">$</text>
       </g>
 
-      {/* Rating Stars Strip at Bottom */}
+      {/* Feature Accent Dots at Bottom */}
       <g transform="translate(50, 77)">
-        <circle cx="6" cy="3" r="1.8" fill="#F59E0B" />
-        <circle cx="14" cy="3" r="1.8" fill="#F59E0B" />
-        <circle cx="22" cy="3" r="1.8" fill="#F59E0B" />
-        <circle cx="30" cy="3" r="1.8" fill="#F59E0B" />
-        <circle cx="38" cy="3" r="1.8" fill="#F59E0B" />
+        <rect x="0" y="1" width="36" height="4" rx="2" fill="#DBEAFE" />
+        <rect x="0" y="1" width="16" height="4" rx="2" fill="#0052FF" />
       </g>
     </svg>
   );

@@ -7,7 +7,6 @@ import {
   GripVertical,
   Plus,
   Layout,
-  Star,
   HelpCircle,
   ShoppingBag,
   Sparkles,
@@ -63,9 +62,6 @@ export default function EditorLayersPanel({
         return <Layers size={14} color="#3B82F6" />;
       case "BRAND_STORY":
         return <BookOpen size={14} color="#D97706" />;
-      case "TESTIMONIALS":
-      case "REVIEWS":
-        return <Star size={14} color="#F59E0B" />;
       case "FAQ":
       case "FAQ_GROUP_SHIPPING":
       case "FAQ_GROUP_RETURNS":

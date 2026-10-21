@@ -12,7 +12,6 @@ import {
   ChevronUp,
   MousePointer,
   Layout,
-  Star,
   HelpCircle,
   ShoppingBag,
   ShieldCheck,
@@ -79,9 +78,6 @@ export default function EditorSidebar({
         return <Layers size={15} color="#3B82F6" />;
       case "BRAND_STORY":
         return <BookOpen size={15} color="#D97706" />;
-      case "TESTIMONIALS":
-      case "REVIEWS":
-        return <Star size={15} color="#F59E0B" />;
       case "FAQ":
       case "FAQ_GROUP_SHIPPING":
       case "FAQ_GROUP_RETURNS":
@@ -980,7 +976,7 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
         />
       )}
 
-      {/* 4. REPEATABLE ITEMS (COLLECTION_LIST, FAQ, TESTIMONIALS, BENEFITS) */}
+      {/* 4. REPEATABLE ITEMS (COLLECTION_LIST, FAQ, BENEFITS) */}
       {isFieldAllowed("items") && (
         <div className="pm-form-field">
           <label className="pm-form-field-label">
@@ -1101,7 +1097,7 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
                     )}
 
                     {/* Title / Description item */}
-                    {("title" in itemObj && !secType.includes("FAQ") && !secType.includes("TESTIMONIALS") && !secType.includes("REVIEWS")) && (
+                    {("title" in itemObj && !secType.includes("FAQ")) && (
                       <input
                         type="text"
                         className="pm-form-input"
@@ -1123,34 +1119,6 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
                         onChange={(e) => {
                           const newItems = [...data.items];
                           newItems[idx] = { ...itemObj, description: e.target.value };
-                          handleFieldChange("items", newItems);
-                        }}
-                      />
-                    )}
-
-                    {/* Review item */}
-                    {("name" in itemObj || secType.includes("TESTIMONIALS") || secType.includes("REVIEWS")) && (
-                      <input
-                        type="text"
-                        className="pm-form-input"
-                        placeholder="Reviewer Name"
-                        style={{ marginBottom: "6px" }}
-                        value={itemObj.name || ""}
-                        onChange={(e) => {
-                          const newItems = [...data.items];
-                          newItems[idx] = { ...itemObj, name: e.target.value };
-                          handleFieldChange("items", newItems);
-                        }}
-                      />
-                    )}
-                    {("comment" in itemObj || secType.includes("TESTIMONIALS") || secType.includes("REVIEWS")) && (
-                      <textarea
-                        className="pm-form-textarea"
-                        placeholder="Review Comment"
-                        value={itemObj.comment || ""}
-                        onChange={(e) => {
-                          const newItems = [...data.items];
-                          newItems[idx] = { ...itemObj, comment: e.target.value };
                           handleFieldChange("items", newItems);
                         }}
                       />
@@ -1185,8 +1153,6 @@ function SectionInlineEditor({ section, onUpdateData, onAiReRoll, isReRolling })
                 ? { title: "New Collection", link: "/collections/all", imageUrl: "" }
                 : secType.includes("FAQ")
                 ? { question: "New Question?", answer: "Answer details here." }
-                : (secType.includes("TESTIMONIALS") || secType.includes("REVIEWS"))
-                ? { name: "Customer Name", comment: "Great product!", rating: 5, badge: "Verified Buyer" }
                 : { title: "New Benefit", description: "Benefit description" };
               const newItems = [...(Array.isArray(data.items) ? data.items : []), newItem];
               handleFieldChange("items", newItems);

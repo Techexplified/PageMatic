@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   Check,
-  Star,
   ChevronDown,
   ChevronUp,
   ShoppingBag,
@@ -39,8 +38,6 @@ export default function SectionRenderer({ section, themeTokens = {} }) {
       return <RenderHeader data={data} theme={themeTokens} />;
     case "HERO":
       return <RenderHero data={data} theme={themeTokens} sectionId={section.id} />;
-    case "SOCIAL_PROOF_STRIP":
-      return <RenderSocialProofStrip data={data} theme={themeTokens} />;
     case "TRUST_BADGES":
       return <RenderTrustBadges data={data} theme={themeTokens} />;
     case "BENEFITS_GRID":
@@ -61,9 +58,6 @@ export default function SectionRenderer({ section, themeTokens = {} }) {
       return <RenderFeaturedGrid data={data} theme={themeTokens} sectionId={section.id} />;
     case "BRAND_STORY":
       return <RenderBrandStory data={data} theme={themeTokens} sectionId={section.id} />;
-    case "TESTIMONIALS":
-    case "REVIEWS":
-      return <RenderTestimonials data={data} theme={themeTokens} sectionId={section.id} />;
     case "FAQ":
     case "FAQ_GROUP_SHIPPING":
     case "FAQ_GROUP_RETURNS":
@@ -338,7 +332,7 @@ function RenderPageHeader({ data, theme }) {
    ========================================================================== */
 function RenderHeader({ data, theme }) {
   const brandName = data.brandName || "Store";
-  const navLinks = Array.isArray(data.navLinks) ? data.navLinks : ["Collection", "Features", "Reviews", "FAQ"];
+  const navLinks = Array.isArray(data.navLinks) ? data.navLinks : ["Collection", "Features", "About", "FAQ"];
   const ctaText = data.ctaText || "Shop Now";
 
   return (
@@ -593,59 +587,7 @@ function RenderHero({ data, theme, sectionId }) {
 }
 
 /* ==========================================================================
-   6. SOCIAL PROOF STRIP (Press logos / badges)
-   ========================================================================== */
-function RenderSocialProofStrip({ data, theme }) {
-  const heading = data.heading || "Featured & Endorsed By Leading Industry Outlets";
-  const logos = Array.isArray(data.logos) ? data.logos : ["VOGUE", "FORBES", "WIRED", "GQ", "OUTSIDE"];
-
-  return (
-    <div style={{
-      padding: "32px",
-      background: "#FAFAFA",
-      borderTop: "1px solid #F1F5F9",
-      borderBottom: "1px solid #F1F5F9",
-      textAlign: "center",
-    }}>
-      <p style={{
-        fontSize: "12px",
-        fontWeight: "700",
-        letterSpacing: "0.08em",
-        color: "#64748B",
-        textTransform: "uppercase",
-        marginBottom: "20px",
-      }}>
-        {heading}
-      </p>
-
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "40px",
-        flexWrap: "wrap",
-      }}>
-        {logos.map((logo, i) => (
-          <span
-            key={i}
-            style={{
-              fontSize: "18px",
-              fontWeight: "900",
-              color: "#94A3B8",
-              letterSpacing: "0.12em",
-              fontFamily: "Inter, sans-serif",
-            }}
-          >
-            {logo}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ==========================================================================
-   7. TRUST BADGES
+   6. TRUST BADGES
    ========================================================================== */
 function RenderTrustBadges({ data, theme }) {
   const items = Array.isArray(data.items) ? data.items : [
@@ -1179,62 +1121,7 @@ function RenderBrandStory({ data, theme }) {
 }
 
 /* ==========================================================================
-   15. TESTIMONIALS
-   ========================================================================== */
-function RenderTestimonials({ data, theme }) {
-  const heading = data.heading || "Real Feedback From Verified Owners";
-  const subtitle = data.subtitle || "Discover why customers around the world rate us 4.9/5 stars.";
-  const items = Array.isArray(data.items) ? data.items : [];
-
-  return (
-    <section style={{ padding: "60px 32px", background: theme["--pm-surface"] || "#F8FAFC", borderTop: "1px solid #E2E8F0" }}>
-      <div style={{ textAlign: "center", maxWidth: "600px", margin: "0 auto 40px" }}>
-        <h2 style={{ fontSize: "28px", fontWeight: "800", color: theme["--pm-text-heading"] || "#0F172A", margin: "0 0 8px" }}>
-          {heading}
-        </h2>
-        <p style={{ fontSize: "14.5px", color: theme["--pm-text-body"] || "#64748B", margin: 0 }}>
-          {subtitle}
-        </p>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "24px", maxWidth: "1000px", margin: "0 auto" }}>
-        {items.map((rev, idx) => (
-          <div key={idx} style={{
-            background: "#FFFFFF",
-            border: "1px solid #E2E8F0",
-            borderRadius: theme["--pm-radius"] || "12px",
-            padding: "24px",
-            display: "flex",
-            flexDirection: "column",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
-          }}>
-            <div style={{ display: "flex", gap: "3px", marginBottom: "12px" }}>
-              {[...Array(rev.rating || 5)].map((_, starI) => (
-                <Star key={starI} size={15} fill="#F59E0B" color="#F59E0B" />
-              ))}
-            </div>
-
-            <p style={{ fontSize: "13.5px", lineHeight: "1.6", color: "#334155", fontStyle: "italic", flex: 1, margin: "0 0 16px" }}>
-              "{rev.comment}"
-            </p>
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #F1F5F9", paddingTop: "12px" }}>
-              <span style={{ fontSize: "13px", fontWeight: "700", color: "#0F172A" }}>
-                {rev.name}
-              </span>
-              <span style={{ fontSize: "11px", color: "#16A34A", fontWeight: "600", display: "flex", alignItems: "center", gap: "3px" }}>
-                <Check size={12} strokeWidth={3} /> {rev.badge || "Verified"}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ==========================================================================
-   16. FAQ SECTION & FAQ ACCORDION GROUPS
+   15. FAQ SECTION & FAQ ACCORDION GROUPS
    ========================================================================== */
 function RenderFAQ({ data, type, theme }) {
   const heading = data.heading || data.groupTitle || "Frequently Asked Questions";

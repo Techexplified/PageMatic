@@ -163,10 +163,6 @@ Niche: ${niche || "General E-commerce"}`;
     "badge": string (e.g. "2026 Collection" or "Best Seller"),
     "trustBadges": string[] (3 short badges e.g. ["Free Express Shipping", "30-Day Money Back", "Lifetime Warranty"])
   },
-  "socialProof": {
-    "heading": string (e.g. "Trusted by Over 10,000+ Enthusiasts & Pro Athletes"),
-    "logos": ["VOGUE", "WIRED", "FORBES", "GQ", "OUTSIDE"]
-  },
   "benefits": {
     "heading": string (e.g. "Why Choose ${targetProduct?.title || "Our Gear"}"),
     "subtitle": string (1-sentence overview),
@@ -182,15 +178,6 @@ Niche: ${niche || "General E-commerce"}`;
     "rows": [
       { "title": string, "description": string, "badge": "PRECISION CRAFTED" },
       { "title": string, "description": string, "badge": "ALL-TERRAIN PROVEN" }
-    ]
-  },
-  "testimonials": {
-    "heading": string (e.g. "Real Feedback From Real Riders"),
-    "subtitle": string,
-    "items": [
-      { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" },
-      { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" },
-      { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" }
     ]
   },
   "faq": {
@@ -251,15 +238,6 @@ Niche: ${niche || "General E-commerce"}`;
       { "feature": "Direct Customer Support", "us": "24/7 Dedicated", "them": "Automated Bot Only" }
     ]
   },
-  "testimonials": {
-    "heading": "What Early Adopters Are Saying",
-    "subtitle": "Real before-and-after results",
-    "items": [
-      { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" },
-      { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" },
-      { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" }
-    ]
-  },
   "faq": {
     "heading": "Campaign Terms & FAQ",
     "items": [
@@ -310,15 +288,6 @@ Niche: ${niche || "General E-commerce"}`;
     "storyQuote": string (Inspiring founder quote about why the brand was created),
     "founderName": "Founder & Design Lead",
     "bodyText": string (2 paragraphs describing craftsmanship, sustainability, and quality standards)
-  },
-  "testimonials": {
-    "heading": "Community Praise",
-    "subtitle": "Join over 10,000+ satisfied customers",
-    "items": [
-      { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" },
-      { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" },
-      { "name": string, "rating": 5, "comment": string, "badge": "Verified Buyer" }
-    ]
   },
   "finalCta": {
     "heading": string (e.g. "Ready to Upgrade Your Experience?"),
@@ -522,21 +491,9 @@ export function assemblePageFromPlan({
       },
     });
 
-    // 3. SOCIAL PROOF STRIP
+    // 3. BENEFITS GRID (3-Column)
     sections.push({
-      id: `sec_social_proof_${now}_2`,
-      type: "SOCIAL_PROOF_STRIP",
-      data: {
-        heading: plan.socialProof?.heading || "Trusted by Over 10,000+ Enthusiasts & Pro Athletes",
-        logos: Array.isArray(plan.socialProof?.logos)
-          ? plan.socialProof.logos
-          : ["VOGUE", "WIRED", "FORBES", "GQ", "OUTSIDE"],
-      },
-    });
-
-    // 4. BENEFITS GRID (3-Column)
-    sections.push({
-      id: `sec_benefits_grid_${now}_3`,
+      id: `sec_benefits_grid_${now}_2`,
       type: "BENEFITS_GRID",
       data: {
         heading: plan.benefits?.heading || `Why Choose ${productTitle}`,
@@ -583,26 +540,9 @@ export function assemblePageFromPlan({
       },
     });
 
-    // 6. TESTIMONIALS (3 Cards)
+    // 6. FAQ (Accordion)
     sections.push({
-      id: `sec_testimonials_${now}_5`,
-      type: "TESTIMONIALS",
-      data: {
-        heading: plan.testimonials?.heading || "Real Feedback From Verified Owners",
-        subtitle: plan.testimonials?.subtitle || "Discover why riders around the world rate us 4.9/5 stars.",
-        items: Array.isArray(plan.testimonials?.items) && plan.testimonials.items.length > 0
-          ? plan.testimonials.items
-          : [
-              { name: "Marcus V.", rating: 5, comment: "The edge control and dampening on choppy snow is unlike anything I've ridden before.", badge: "Verified Buyer" },
-              { name: "Elena S.", rating: 5, comment: "Shipped in 24 hours. The build quality and finish are world-class.", badge: "Verified Buyer" },
-              { name: "David K.", rating: 5, comment: "Held up during 40+ days on the mountain this season with zero issues. Outstanding!", badge: "Verified Buyer" },
-            ],
-      },
-    });
-
-    // 7. FAQ (Accordion)
-    sections.push({
-      id: `sec_faq_${now}_6`,
+      id: `sec_faq_${now}_5`,
       type: "FAQ",
       data: {
         heading: plan.faq?.heading || "Frequently Asked Questions",
@@ -729,26 +669,9 @@ export function assemblePageFromPlan({
       },
     });
 
-    // 6. TESTIMONIALS
+    // 6. FAQ
     sections.push({
-      id: `sec_testimonials_${now}_5`,
-      type: "TESTIMONIALS",
-      data: {
-        heading: plan.testimonials?.heading || "What Early Adopters Are Saying",
-        subtitle: plan.testimonials?.subtitle || "Real before-and-after transformations.",
-        items: Array.isArray(plan.testimonials?.items) && plan.testimonials.items.length > 0
-          ? plan.testimonials.items
-          : [
-              { name: "Chris L.", rating: 5, comment: "Completely elevated my performance. Incredible responsiveness and lightweight feel.", badge: "Verified Buyer" },
-              { name: "Sarah M.", rating: 5, comment: "The quality is unmatched for the price point. Highly recommend!", badge: "Verified Buyer" },
-              { name: "Jason P.", rating: 5, comment: "Delivered fast, exactly as described. Best investment I've made all year.", badge: "Verified Buyer" },
-            ],
-      },
-    });
-
-    // 7. FAQ
-    sections.push({
-      id: `sec_faq_${now}_6`,
+      id: `sec_faq_${now}_5`,
       type: "FAQ",
       data: {
         heading: plan.faq?.heading || "Campaign Terms & FAQ",
@@ -927,25 +850,9 @@ export function assemblePageFromPlan({
       },
     });
 
-    // 5. TESTIMONIALS
+    // 5. FINAL CTA BANNER (Closing Conversion Banner routing to /collections by default)
     sections.push({
-      id: `sec_testimonials_${now}_4`,
-      type: "TESTIMONIALS",
-      data: {
-        heading: plan.testimonials?.heading || "Community Praise",
-        subtitle: plan.testimonials?.subtitle || "Join over 10,000+ satisfied customers worldwide.",
-        items: Array.isArray(plan.testimonials?.items) && plan.testimonials.items.length > 0
-          ? plan.testimonials.items
-          : [
-              { name: "Alex T.", rating: 5, comment: "Top quality gear and lightning-fast delivery. Will definitely buy again!", badge: "Verified Buyer" },
-              { name: "Taylor K.", rating: 5, comment: "Transformed my experience on the slopes. Truly premium craftsmanship.", badge: "Verified Buyer" },
-            ],
-      },
-    });
-
-    // 6. FINAL CTA BANNER (Closing Conversion Banner routing to /collections by default)
-    sections.push({
-      id: `sec_final_cta_${now}_5`,
+      id: `sec_final_cta_${now}_4`,
       type: "FINAL_CTA",
       data: {
         heading: plan.finalCta?.heading || `Ready to Experience ${brandName}?`,
